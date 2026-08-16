@@ -14,6 +14,7 @@ const links = [
   { href: '/fields', label: 'الحقول والتخصصات' },
   { href: '/stages', label: 'المراحل' },
   { href: '/universities', label: 'الجامعات والأسعار' },
+  { href: '/settings', label: 'الإعدادات' },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {

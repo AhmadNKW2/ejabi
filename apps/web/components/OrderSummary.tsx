@@ -25,6 +25,7 @@ export function OrderSummary({
   onRemoveItem,
   onReorder,
   onSubmit,
+  hideMedia = false,
 }: {
   items: CompareItemDto[];
   error: string;
@@ -40,6 +41,7 @@ export function OrderSummary({
   onRemoveItem: (id: string) => void;
   onReorder: (next: CompareItemDto[]) => void;
   onSubmit: () => void;
+  hideMedia?: boolean;
 }) {
   const idPrefix = asPage ? 'page' : 'sheet';
   const sortable = items.length > 1;
@@ -111,6 +113,7 @@ export function OrderSummary({
                 item={item}
                 index={index}
                 sortable={sortable}
+                hideMedia={hideMedia}
                 onChangeItem={onChangeItem}
                 onRemoveItem={onRemoveItem}
               />
@@ -210,12 +213,14 @@ function SortableChoiceCard({
   item,
   index,
   sortable,
+  hideMedia,
   onChangeItem,
   onRemoveItem,
 }: {
   item: CompareItemDto;
   index: number;
   sortable: boolean;
+  hideMedia: boolean;
   onChangeItem: (id: string) => void;
   onRemoveItem: (id: string) => void;
 }) {
@@ -262,7 +267,7 @@ function SortableChoiceCard({
       </div>
       <div className="min-w-0">
         <div className="mb-2.5 flex items-center gap-3">
-          {item.university.logoUrl ? (
+          {hideMedia ? null : item.university.logoUrl ? (
             <img className="h-11 w-11 shrink-0 rounded-xl bg-ink-3 object-cover" src={mediaSrc(item.university.logoUrl) || ''} alt="" />
           ) : (
             <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-amber">
@@ -281,7 +286,7 @@ function SortableChoiceCard({
         </div>
         <div className="flex flex-wrap gap-1.5">
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-            {item.country.iso2 ? <img className="h-[13px] w-[18px] rounded-sm object-cover" src={flagUrl(item.country.iso2, 40)} alt="" /> : null}
+            {!hideMedia && item.country.iso2 ? <img className="h-[13px] w-[18px] rounded-sm object-cover" src={flagUrl(item.country.iso2, 40)} alt="" /> : null}
             {item.country.labelAr}
           </span>
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">

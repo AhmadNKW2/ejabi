@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
@@ -25,6 +25,7 @@ import {
   QuoteRequest,
   QuoteResponse,
   flagUrl,
+  parseCatalogView,
 } from '@ejabi/shared';
 import { api, ApiError, mediaSrc } from '@/lib/api';
 import { formatUsd, majorLabel } from '@/lib/format';
@@ -32,6 +33,7 @@ import { fireRealisticConfetti } from '@/lib/confetti';
 import { fieldImage, majorImage, stageImage } from '@/lib/catalog-images';
 import { BrandMark } from '@/components/BrandMark';
 import { OrderSummary } from '@/components/OrderSummary';
+import { OptionPills } from '@/components/OptionPills';
 import { IconButton } from '@/components/IconButton';
 import { btnGhost, btnPrimary, cn } from '@/lib/cn';
 
@@ -412,6 +414,8 @@ export function Ejabi() {
     );
   }
 
+  const pills = parseCatalogView(catalog.catalogView) === 'view2';
+
   return (
     <div className={cn('home flex flex-col gap-[15px]', showDock && !summaryPage && 'max-[720px]:pb-[84px]')}>
       {summaryPage && items.length === 3 ? (
@@ -429,6 +433,7 @@ export function Ejabi() {
           onRemoveItem={removeItem}
           onReorder={setItems}
           onSubmit={submitApplication}
+          hideMedia={pills}
         />
       ) : (
         <>
@@ -519,6 +524,81 @@ export function Ejabi() {
 
       <div>
         <section ref={builderRef} className="min-w-0 overflow-hidden rounded-[22px] bg-ink-2 scroll-mt-[92px]" aria-label="لوحة بناء المسار">
+          {pills ? (
+            <div className="flex flex-col gap-7 px-4 py-5 max-[720px]:gap-6 max-[720px]:px-3 max-[720px]:py-4">
+              <PillStep label="الدولة" hint={STEPS[0].hint}>
+                <OptionPills
+                  items={catalog.countries.map((c) => ({ id: c.id, label: c.labelAr }))}
+                  value={selection.countryId}
+                  onChange={(id) => pick('countryId', id)}
+                />
+              </PillStep>
+              <PillStep
+                label="الحقل"
+                hint={STEPS[1].hint}
+                locked={!selection.countryId}
+                lockHint="اختر الدولة أولًا."
+              >
+                <OptionPills
+                  items={catalog.fields.map((f) => ({ id: f.id, label: f.labelAr }))}
+                  value={selection.fieldId}
+                  onChange={(id) => pick('fieldId', id)}
+                />
+              </PillStep>
+              <PillStep
+                label="التخصص"
+                hint={STEPS[2].hint}
+                locked={!selection.countryId || !selection.fieldId}
+                lockHint="اختر الحقل أولًا."
+              >
+                <OptionPills
+                  items={majors.map((m) => ({ id: m.id, label: m.labelAr }))}
+                  value={selection.majorId}
+                  onChange={(id) => pick('majorId', id)}
+                />
+              </PillStep>
+              <PillStep
+                label="الجامعة"
+                hint={STEPS[3].hint}
+                locked={!selection.countryId || !selection.majorId}
+                lockHint="اختر التخصص أولًا."
+              >
+                {universities.length === 0 ? (
+                  <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
+                    لا توجد جامعات لهذا التخصص في هذه الدولة. غيّر التخصص أو الدولة.
+                  </p>
+                ) : (
+                  <OptionPills
+                    items={universities.map((u) => ({ id: u.id, label: u.labelAr }))}
+                    value={selection.universityId}
+                    onChange={(id) => pick('universityId', id)}
+                  />
+                )}
+              </PillStep>
+              <PillStep
+                label="المرحلة"
+                hint={STEPS[4].hint}
+                locked={!selection.universityId}
+                lockHint="اختر الجامعة أولًا."
+              >
+                {offeredStages.length === 0 ? (
+                  <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
+                    هذا التخصص لا يُقدَّم في أي مرحلة في هذه الجامعة.
+                  </p>
+                ) : (
+                  <OptionPills
+                    items={offeredStages.map((s) => ({
+                      id: s.id,
+                      label: s.labelAr,
+                    }))}
+                    value={selection.stageId}
+                    onChange={(id) => pick('stageId', id)}
+                  />
+                )}
+              </PillStep>
+            </div>
+          ) : (
+            <>
           <div className="flex flex-wrap justify-center gap-1.5 border-b border-line bg-black/[0.16] p-2.5 max-[720px]:overflow-hidden" aria-label="خطوات المسار">
             {STEPS.map((s) => {
               const unlocked = isUnlocked(s.key, selection);
@@ -633,6 +713,8 @@ export function Ejabi() {
               </motion.div>
             </AnimatePresence>
           </div>
+            </>
+          )}
 
           <AnimatePresence initial={false}>
             {canQuote ? (
@@ -740,6 +822,7 @@ export function Ejabi() {
                 onRemoveItem={removeItem}
                 onReorder={setItems}
                 onSubmit={submitApplication}
+                hideMedia={pills}
               />
             </motion.div>
           </motion.div>
@@ -779,6 +862,28 @@ export function Ejabi() {
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+function PillStep({
+  label,
+  hint,
+  locked = false,
+  lockHint,
+  children,
+}: {
+  label: string;
+  hint: string;
+  locked?: boolean;
+  lockHint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn(locked && 'opacity-60')}>
+      <h2 className="mb-1 font-cairo text-xl font-black text-paper">{label}</h2>
+      <p className="mb-3 max-w-[46ch] text-sm leading-[1.8] text-slate">{hint}</p>
+      {locked ? <p className="m-0 text-sm text-slate">{lockHint}</p> : children}
+    </section>
   );
 }
 

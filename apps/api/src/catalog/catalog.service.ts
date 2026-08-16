@@ -18,7 +18,7 @@ export class CatalogService {
   constructor(private prisma: PrismaService) {}
 
   async getPublicCatalog() {
-    const [countries, fields, stages] = await Promise.all([
+    const [countries, fields, stages, settings] = await Promise.all([
       this.prisma.country.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
@@ -38,8 +38,14 @@ export class CatalogService {
         },
       }),
       this.prisma.stage.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
+      this.prisma.siteSettings.upsert({
+        where: { id: 'default' },
+        create: { id: 'default', catalogView: 'view1' },
+        update: {},
+      }),
     ]);
     return {
+      catalogView: settings.catalogView === 'view2' ? 'view2' : 'view1',
       countries: countries.map((c) => ({
         ...c,
         universities: c.universities.map(({ majors, prices, ...u }) => ({

@@ -174,3 +174,9 @@ model ApplicationChoice {
 
   @@unique([applicationId, preferenceOrder])
 }
+
+model SiteSettings {
+  id          String   @id @default("default")
+  catalogView String   @default("view1")
+  updatedAt   DateTime @updatedAt
+}

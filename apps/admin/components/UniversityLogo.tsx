@@ -1,6 +1,7 @@
 'use client';
 
 import { mediaSrc } from '@/lib/api';
+import { useOptionalSiteSettings } from '@/lib/settings';
 import { School } from 'lucide-react';
 
 export function UniversityLogo({
@@ -12,6 +13,8 @@ export function UniversityLogo({
   size?: number;
   className?: string;
 }) {
+  const hideCatalogImages = useOptionalSiteSettings()?.hideCatalogImages;
+  if (hideCatalogImages) return null;
   const resolved = mediaSrc(src);
   const style = { width: size, height: size };
   if (resolved) {

@@ -87,7 +87,18 @@ export interface CatalogStage {
   isActive: boolean;
 }
 
+export type CatalogView = 'view1' | 'view2';
+
+export function parseCatalogView(value: unknown): CatalogView {
+  return value === 'view2' ? 'view2' : 'view1';
+}
+
+export interface SiteSettings {
+  catalogView: CatalogView;
+}
+
 export interface CatalogResponse {
+  catalogView: CatalogView;
   countries: CatalogCountry[];
   fields: CatalogField[];
   majors: CatalogMajor[];

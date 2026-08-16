@@ -16,6 +16,7 @@ import { SearchField } from '@/components/SearchField';
 import { Select } from '@/components/Select';
 import { Toggle } from '@/components/Toggle';
 import { UniversityLogo } from '@/components/UniversityLogo';
+import { useSiteSettings } from '@/lib/settings';
 
 type UniRow = CatalogUniversity & {
   country?: CatalogCountry;
@@ -78,6 +79,7 @@ function AddMajorSelect({
 }
 
 function UniversitiesWorkspace() {
+  const { hideCatalogImages } = useSiteSettings();
   const searchParams = useSearchParams();
   const requestedUni = searchParams.get('university') || '';
   const [countries, setCountries] = useState<CatalogCountry[]>([]);
@@ -351,20 +353,22 @@ function UniversitiesWorkspace() {
     setFormError('');
     setBusy(true);
     try {
-      let logoUrl = form.logoUrl.trim() || null;
-      if (logoFile) {
-        const body = new FormData();
-        body.append('file', logoFile);
-        const uploaded = await apiUpload<{ url: string }>('/admin/universities/image', body);
-        logoUrl = uploaded.url;
-      }
-      const payload = {
+      const payload: Record<string, unknown> = {
         countryId: form.countryId,
         labelAr: form.labelAr.trim(),
         labelEn: form.labelEn.trim(),
-        logoUrl,
         isActive: form.isActive,
       };
+      if (!hideCatalogImages) {
+        let logoUrl = form.logoUrl.trim() || null;
+        if (logoFile) {
+          const body = new FormData();
+          body.append('file', logoFile);
+          const uploaded = await apiUpload<{ url: string }>('/admin/universities/image', body);
+          logoUrl = uploaded.url;
+        }
+        payload.logoUrl = logoUrl;
+      }
       if (editing) {
         await api(`/admin/universities/${editing.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
         setSelectedId(editing.id);
@@ -653,43 +657,45 @@ function UniversitiesWorkspace() {
               onChange={(v) => setForm((s) => ({ ...s, countryId: v }))}
             />
           </div>
-          <div>
-            <label>صورة الجامعة</label>
-            <div className="flex items-center gap-4">
-              <UniversityLogo src={logoPreview || form.logoUrl} size={72} />
-              <div className="min-w-0 space-y-2">
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(e) => onPickLogo(e.target.files?.[0])}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-xl bg-ink-3 px-4 py-2 text-sm font-bold"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    رفع صورة
-                  </button>
-                  {logoPreview || form.logoUrl ? (
+          {!hideCatalogImages ? (
+            <div>
+              <label>صورة الجامعة</label>
+              <div className="flex items-center gap-4">
+                <UniversityLogo src={logoPreview || form.logoUrl} size={72} />
+                <div className="min-w-0 space-y-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => onPickLogo(e.target.files?.[0])}
+                  />
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-xl bg-ink-3 px-4 py-2 text-sm"
-                      onClick={() => {
-                        resetLogoPicker();
-                        setForm((s) => ({ ...s, logoUrl: '' }));
-                      }}
+                      className="rounded-xl bg-ink-3 px-4 py-2 text-sm font-bold"
+                      onClick={() => fileRef.current?.click()}
                     >
-                      إزالة
+                      رفع صورة
                     </button>
-                  ) : null}
+                    {logoPreview || form.logoUrl ? (
+                      <button
+                        type="button"
+                        className="rounded-xl bg-ink-3 px-4 py-2 text-sm"
+                        onClick={() => {
+                          resetLogoPicker();
+                          setForm((s) => ({ ...s, logoUrl: '' }));
+                        }}
+                      >
+                        إزالة
+                      </button>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-slate">JPG أو PNG أو WebP، حتى 5 ميغابايت</p>
                 </div>
-                <p className="text-[11px] text-slate">JPG أو PNG أو WebP، حتى 5 ميغابايت</p>
               </div>
             </div>
-          </div>
+          ) : null}
           <div>
             <label>الاسم بالعربي</label>
             <input

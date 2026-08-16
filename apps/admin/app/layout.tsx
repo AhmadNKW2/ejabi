@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cairo, Tajawal } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth';
+import { SiteSettingsProvider } from '@/lib/settings';
 import { Shell } from '@/components/Shell';
 import './globals.css';
 
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" className={`${cairo.variable} ${tajawal.variable}`}>
       <body>
         <AuthProvider>
-          <Shell>{children}</Shell>
+          <SiteSettingsProvider>
+            <Shell>{children}</Shell>
+          </SiteSettingsProvider>
         </AuthProvider>
       </body>
     </html>
