@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel --filter @ejabi/api --filter @ejabi/web --filter @ejabi/admin dev",
-    "start": "pnpm dev",
+    "start": "pnpm --filter @ejabi/api start",
     "dev:api": "pnpm --filter @ejabi/api dev",
     "dev:web": "pnpm --filter @ejabi/web dev",
     "dev:admin": "pnpm --filter @ejabi/admin dev",
@@ -16,5 +16,6 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@11.14.0"
 }

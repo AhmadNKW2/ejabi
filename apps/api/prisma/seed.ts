@@ -5,7 +5,11 @@ import { resolve } from 'path';
 
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: { url: process.env.DIRECT_URL || process.env.DATABASE_URL },
+  },
+});
 
 const uniImage = (slug: string) => `/uploads/universities/${slug}.jpg`;
 
@@ -208,29 +212,32 @@ async function main() {
     }
   }
 
+  await prisma.universityMajorStage.deleteMany();
+  await prisma.universityMajor.deleteMany();
+  console.log('Seeding university majors and prices...');
+
+  const majorLinks: { universityId: string; majorId: string }[] = [];
+  const stagePrices: { universityId: string; majorId: string; stageId: string; costUsd: number }[] = [];
+
   for (let i = 0; i < universityRows.length; i++) {
     const uni = universityRows[i];
     const countrySlug = Object.keys(countryBySlug).find((slug) => countryBySlug[slug].id === uni.countryId)!;
     const factor = countryPriceFactor[countrySlug] ?? 1;
 
-    await prisma.universityMajorStage.deleteMany({ where: { universityId: uni.id } });
-    await prisma.universityMajor.deleteMany({ where: { universityId: uni.id } });
-
     for (let mi = 0; mi < majors.length; mi++) {
       const m = majors[mi];
       const major = majorBySlug[m.slug];
       const offeredStages = stageSets[(i + mi) % stageSets.length].map((slug) => stageBySlug[slug]);
-      await prisma.universityMajor.create({
-        data: { universityId: uni.id, majorId: major.id },
-      });
+      majorLinks.push({ universityId: uni.id, majorId: major.id });
       for (const stage of offeredStages) {
         const costUsd = Math.round((m.base * factor * (stageCostFactor[stage.slug] ?? 1)) / 500) * 500;
-        await prisma.universityMajorStage.create({
-          data: { universityId: uni.id, majorId: major.id, stageId: stage.id, costUsd },
-        });
+        stagePrices.push({ universityId: uni.id, majorId: major.id, stageId: stage.id, costUsd });
       }
     }
   }
+
+  await prisma.universityMajor.createMany({ data: majorLinks, skipDuplicates: true });
+  await prisma.universityMajorStage.createMany({ data: stagePrices, skipDuplicates: true });
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
   await prisma.user.upsert({

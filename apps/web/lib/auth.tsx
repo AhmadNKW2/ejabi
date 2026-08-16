@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         if (me.role === 'ADMIN') {
           await api('/auth/logout', { method: 'POST' });
-          throw new ApiError(403, 'هذا حساب مدير — استخدم لوحة الإدارة على المنفذ 3002');
+          throw new ApiError(403, 'هذا حساب مدير — استخدم لوحة الإدارة');
         }
         setUser(me);
         return me;

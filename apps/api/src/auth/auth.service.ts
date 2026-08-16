@@ -24,10 +24,12 @@ export class AuthService {
   ) {}
 
   private cookieOptions(maxAge: number) {
+    const secure = this.config.get('COOKIE_SECURE') === 'true';
     return {
       httpOnly: true,
-      secure: this.config.get('COOKIE_SECURE') === 'true',
-      sameSite: 'lax' as const,
+      secure,
+      // Cross-site Vercel → Railway cookies require SameSite=None; Secure
+      sameSite: (secure ? 'none' : 'lax') as 'none' | 'lax',
       path: '/',
       maxAge,
     };
@@ -76,8 +78,9 @@ export class AuthService {
   }
 
   clearAuthCookies(res: Response) {
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    const base = this.cookieOptions(0);
+    res.clearCookie('access_token', { path: base.path, secure: base.secure, sameSite: base.sameSite });
+    res.clearCookie('refresh_token', { path: base.path, secure: base.secure, sameSite: base.sameSite });
   }
 
   async register(dto: RegisterDto, res: Response) {
