@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@11.14.0 --activate
@@ -10,7 +10,7 @@ COPY packages/shared ./packages/shared
 RUN pnpm install --frozen-lockfile --filter @ejabi/api...
 RUN pnpm --filter @ejabi/api build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
