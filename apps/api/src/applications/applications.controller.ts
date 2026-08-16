@@ -3,6 +3,7 @@ import { ApplicationsService } from './applications.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtUser } from '../common/types/jwt-user';
 import { CreateApplicationDto } from './dto/create-application.dto';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('applications')
 export class ApplicationsController {
@@ -18,8 +19,9 @@ export class ApplicationsController {
     return this.applications.getMine(user.id, id);
   }
 
+  @Public()
   @Post()
-  create(@CurrentUser() user: JwtUser, @Body() dto: CreateApplicationDto) {
-    return this.applications.create(user.id, dto);
+  create(@Body() dto: CreateApplicationDto) {
+    return this.applications.create(dto);
   }
 }

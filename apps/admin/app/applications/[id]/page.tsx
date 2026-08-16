@@ -25,7 +25,7 @@ export default function ApplicationDetailPage() {
       </Link>
       <h1 className="mb-2 mt-3 font-cairo text-2xl font-black text-amber">تفاصيل الطلب</h1>
       <p className="mb-5 text-slate">
-        {app.user?.fullName} · {app.user?.email} · {app.user?.phone || 'بدون هاتف'} ·{' '}
+        {app.user?.fullName} · {app.user?.phone || 'بدون هاتف'} ·{' '}
         {APPLICATION_STATUS_LABELS[app.status]}
       </p>
       <ApplicationChoiceTree choices={app.choices} />

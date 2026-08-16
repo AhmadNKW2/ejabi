@@ -64,7 +64,7 @@ export default function ApplicationsListPage() {
                 <div>
                   <div className="font-bold">{r.user?.fullName}</div>
                   <div className="text-xs text-slate">
-                    {r.user?.email} · {new Date(r.createdAt).toLocaleDateString('ar')}
+                    {r.user?.phone || 'بدون هاتف'} · {new Date(r.createdAt).toLocaleDateString('ar')}
                   </div>
                 </div>
                 <button
@@ -91,8 +91,7 @@ export default function ApplicationsListPage() {
             <div className="mb-5 rounded-xl bg-ink-3 p-4">
               <div className="font-cairo text-lg font-bold">{view.user?.fullName}</div>
               <div className="mt-1 text-sm text-slate">
-                {view.user?.email} · {view.user?.phone || 'بدون هاتف'} ·{' '}
-                {new Date(view.createdAt).toLocaleDateString('ar')}
+                {view.user?.phone || 'بدون هاتف'} · {new Date(view.createdAt).toLocaleDateString('ar')}
               </div>
             </div>
             <ApplicationChoiceTree choices={view.choices} />

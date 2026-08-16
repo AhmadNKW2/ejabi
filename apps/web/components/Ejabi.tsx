@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
@@ -28,12 +27,12 @@ import {
   flagUrl,
 } from '@ejabi/shared';
 import { api, ApiError, mediaSrc } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
 import { formatUsd, majorLabel } from '@/lib/format';
+import { fireRealisticConfetti } from '@/lib/confetti';
 import { fieldImage, majorImage, stageImage } from '@/lib/catalog-images';
 import { IconButton } from '@/components/IconButton';
 import { BrandMark } from '@/components/BrandMark';
-import { btnGhost, btnPrimary, cn } from '@/lib/cn';
+import { btnGhost, btnPrimary, cn, inputClass, labelClass } from '@/lib/cn';
 
 type Selection = {
   fieldId: string | null;
@@ -53,6 +52,7 @@ const emptySelection: Selection = {
   universityId: null,
 };
 
+const STORAGE_KEY = 'ejabi-choices';
 const RANK_TITLES = ['الأفضلية الأولى', 'الأفضلية الثانية', 'الأفضلية الثالثة'];
 
 const STEPS: { key: StepKey; n: number; label: string; hint: string }[] = [
@@ -93,8 +93,6 @@ function isUnlocked(key: StepKey, selection: Selection) {
 }
 
 export function Ejabi() {
-  const router = useRouter();
-  const { user } = useAuth();
   const builderRef = useRef<HTMLElement>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
   const [actionsVisible, setActionsVisible] = useState(false);
@@ -107,6 +105,10 @@ export function Ejabi() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [replaceId, setReplaceId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [choicesReady, setChoicesReady] = useState(false);
 
   const step = focusStep && isUnlocked(focusStep, selection) ? focusStep : derivedStep(selection);
   const selectedField = catalog?.fields.find((f) => f.id === selection.fieldId);
@@ -126,25 +128,21 @@ export function Ejabi() {
   const offeredStages = (catalog?.stages ?? []).filter((s) => offeredStageIds.includes(s.id));
   const selectedStage = offeredStages.find((s) => s.id === selection.stageId);
 
-  const loadCompare = useCallback(async () => {
-    if (!user) {
-      setItems([]);
-      return;
-    }
-    try {
-      setItems(await api<CompareItemDto[]>('/compare'));
-    } catch {
-      setItems([]);
-    }
-  }, [user]);
-
   useEffect(() => {
     api<CatalogResponse>('/catalog').then(setCatalog).catch(() => setCatalog(null));
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setItems(JSON.parse(raw) as CompareItemDto[]);
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setChoicesReady(true);
   }, []);
 
   useEffect(() => {
-    loadCompare();
-  }, [loadCompare]);
+    if (!choicesReady) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items, choicesReady]);
 
   useEffect(() => {
     if (!actionsEl) return;
@@ -165,20 +163,6 @@ export function Ejabi() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [summaryOpen, successOpen]);
-
-  useEffect(() => {
-    const pending = sessionStorage.getItem('pendingAdd');
-    if (pending && user) {
-      sessionStorage.removeItem('pendingAdd');
-      const dto = JSON.parse(pending) as QuoteRequest;
-      api<CompareItemDto>('/compare', { method: 'POST', body: JSON.stringify(dto) })
-        .then(async () => {
-          await loadCompare();
-          setSummaryOpen(true);
-        })
-        .catch(() => undefined);
-    }
-  }, [user, loadCompare]);
 
   const canQuote = Boolean(
     selection.fieldId && selection.majorId && selection.stageId && selection.countryId && selection.universityId,
@@ -236,42 +220,54 @@ export function Ejabi() {
   }
 
   async function addChoice() {
-    if (!canQuote) return;
+    if (!canQuote || !quote || !selectedField || !selectedMajor || !selectedStage || !selectedCountry || !selectedUniversity) {
+      return;
+    }
     if (!replaceId && items.length >= 3) {
       setSummaryOpen(true);
       setError('يمكنك اختيار 3 خيارات فقط. احذف أو غيّر أحدها.');
       return;
     }
-    const dto: QuoteRequest = {
+    const key = `${selection.fieldId}:${selection.majorId}:${selection.stageId}:${selection.countryId}:${selection.universityId}`;
+    const duplicate = items.some(
+      (item) =>
+        item.id !== replaceId &&
+        `${item.fieldId}:${item.majorId}:${item.stageId}:${item.countryId}:${item.universityId}` === key,
+    );
+    if (duplicate) {
+      setError('هذا الخيار مضاف مسبقًا.');
+      setSummaryOpen(true);
+      return;
+    }
+    const nextItem: CompareItemDto = {
+      id: crypto.randomUUID(),
       fieldId: selection.fieldId!,
       majorId: selection.majorId!,
       stageId: selection.stageId!,
       countryId: selection.countryId!,
       universityId: selection.universityId!,
+      customMajorLabel: null,
+      years: quote.years,
+      annualCostUsd: quote.annualCostUsd,
+      totalCostUsd: quote.totalCostUsd,
+      createdAt: new Date().toISOString(),
+      field: selectedField,
+      major: selectedMajor,
+      stage: selectedStage,
+      country: selectedCountry,
+      university: selectedUniversity,
     };
-    if (!user) {
-      sessionStorage.setItem('pendingAdd', JSON.stringify(dto));
-      router.push('/login?next=/');
-      return;
-    }
+    const next = replaceId ? items.map((item) => (item.id === replaceId ? nextItem : item)) : [...items, nextItem];
+    setItems(next);
+    setReplaceId(null);
     setError('');
-    try {
-      if (replaceId) {
-        await api(`/compare/${replaceId}`, { method: 'DELETE' });
-        setReplaceId(null);
-      }
-      await api('/compare', { method: 'POST', body: JSON.stringify(dto) });
-      await loadCompare();
-      resetBoard();
-      setSummaryOpen(true);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'تعذر الإضافة');
-    }
+    resetBoard();
+    setSummaryOpen(true);
+    if (!replaceId && next.length === 3) fireRealisticConfetti();
   }
 
-  async function removeItem(id: string) {
-    await api(`/compare/${id}`, { method: 'DELETE' });
-    await loadCompare();
+  function removeItem(id: string) {
+    setItems((list) => list.filter((item) => item.id !== id));
   }
 
   function changeItem(id: string) {
@@ -285,20 +281,36 @@ export function Ejabi() {
 
   async function submitApplication() {
     if (items.length !== 3) return;
+    if (fullName.trim().length < 2 || phone.trim().length < 8) {
+      setError('أدخل اسمك ورقم هاتفك لإرسال الطلب.');
+      return;
+    }
     setError('');
+    setSubmitting(true);
     try {
       await api('/applications', {
         method: 'POST',
-        body: JSON.stringify({ itemIds: items.map((i) => i.id) }),
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          choices: items.map((item) => ({
+            fieldId: item.fieldId,
+            majorId: item.majorId,
+            stageId: item.stageId,
+            countryId: item.countryId,
+            universityId: item.universityId,
+          })),
+        }),
       });
+      fireRealisticConfetti();
       setSummaryOpen(false);
       setSuccessOpen(true);
-      for (const item of items) {
-        await api(`/compare/${item.id}`, { method: 'DELETE' }).catch(() => undefined);
-      }
       setItems([]);
+      localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'تعذر رفع الطلب');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -573,7 +585,7 @@ export function Ejabi() {
                   </h3>
                   <p className="m-0 max-w-[46ch] text-[13.5px] leading-[1.8] text-slate">
                     {items.length === 3
-                      ? 'ترتيبك مكتمل. راجع الجامعات ثم اضغط «تقدم الآن».'
+                      ? 'ترتيبك مكتمل. أدخل اسمك ورقم هاتفك ثم اضغط «إرسال الطلب».'
                       : 'ثلاثة خيارات مرتبة حسب الأفضلية. غيّر أو احذف أي خيار قبل التقديم.'}
                   </p>
                 </div>
@@ -681,32 +693,66 @@ export function Ejabi() {
                 })}
               </div>
 
-              <footer className="flex flex-wrap items-center justify-between gap-3.5 border-t border-line bg-black/[0.12] px-[18px] pb-[18px] pt-3.5 max-[720px]:flex-col max-[720px]:items-stretch">
-                <p className="m-0 min-w-[180px] flex-1 text-[13px] leading-[1.7] text-slate">
-                  {items.length === 3
-                    ? 'جاهز للتقديم. يمكنك تعديل أي خيار قبل الإرسال.'
-                    : items.length === 2
-                      ? 'يتبقى خيار واحد لإكمال الترتيب.'
-                      : items.length === 1
-                        ? 'يتبقى خياران لإكمال الترتيب.'
-                        : 'ابدأ بإضافة خيارك الأول من اللوحة.'}
-                </p>
-                <div className="flex flex-wrap gap-2.5 max-[720px]:w-full max-[720px]:[&>button]:flex-1">
-                  <button
-                    type="button"
-                    className="cursor-pointer rounded-[9px] border-0 bg-ink-3 px-[18px] py-[11px] font-cairo text-[14.5px] font-bold text-paper hover:bg-white/[0.08]"
-                    onClick={items.length < 3 ? continueChoosing : () => setSummaryOpen(false)}
-                  >
-                    {items.length < 3 ? 'متابعة الاختيار' : 'إغلاق'}
-                  </button>
-                  <button
-                    type="button"
-                    className="min-w-[148px] cursor-pointer rounded-[9px] border-0 bg-amber px-[22px] py-[11px] font-cairo text-[14.5px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-35"
-                    onClick={submitApplication}
-                    disabled={items.length !== 3}
-                  >
-                    تقدم الآن
-                  </button>
+              <footer className="flex flex-col gap-3.5 border-t border-line bg-black/[0.12] px-[18px] pb-[18px] pt-3.5">
+                {items.length === 3 ? (
+                  <div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
+                    <div>
+                      <label className={labelClass} htmlFor="applicant-name">
+                        اسمك
+                      </label>
+                      <input
+                        id="applicant-name"
+                        className={inputClass}
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="الاسم الكامل"
+                        autoComplete="name"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass} htmlFor="applicant-phone">
+                        رقم هاتفك
+                      </label>
+                      <input
+                        id="applicant-phone"
+                        className={inputClass}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="07xxxxxxxxx"
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+                {error ? <p className="m-0 text-[13px] text-danger">{error}</p> : null}
+                <div className="flex flex-wrap items-center justify-between gap-3.5 max-[720px]:flex-col max-[720px]:items-stretch">
+                  <p className="m-0 min-w-[180px] flex-1 text-[13px] leading-[1.7] text-slate">
+                    {items.length === 3
+                      ? 'جاهز للإرسال بعد إدخال الاسم ورقم الهاتف.'
+                      : items.length === 2
+                        ? 'يتبقى خيار واحد لإكمال الترتيب.'
+                        : items.length === 1
+                          ? 'يتبقى خياران لإكمال الترتيب.'
+                          : 'ابدأ بإضافة خيارك الأول من اللوحة.'}
+                  </p>
+                  <div className="flex flex-wrap gap-2.5 max-[720px]:w-full max-[720px]:[&>button]:flex-1">
+                    <button
+                      type="button"
+                      className="cursor-pointer rounded-[9px] border-0 bg-ink-3 px-[18px] py-[11px] font-cairo text-[14.5px] font-bold text-paper hover:bg-white/[0.08]"
+                      onClick={items.length < 3 ? continueChoosing : () => setSummaryOpen(false)}
+                    >
+                      {items.length < 3 ? 'متابعة الاختيار' : 'إغلاق'}
+                    </button>
+                    <button
+                      type="button"
+                      className="min-w-[148px] cursor-pointer rounded-[9px] border-0 bg-amber px-[22px] py-[11px] font-cairo text-[14.5px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-35"
+                      onClick={submitApplication}
+                      disabled={items.length !== 3 || submitting || fullName.trim().length < 2 || phone.trim().length < 8}
+                    >
+                      {submitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'}
+                    </button>
+                  </div>
                 </div>
               </footer>
             </motion.div>
@@ -737,10 +783,7 @@ export function Ejabi() {
               <p className="mb-6 text-[15px] leading-[2] text-paper">لقد تم رفع الطلب وسيتواصل معك فريقنا لمتابعة التقديم إن شاء الله.</p>
               <button
                 className={btnPrimary}
-                onClick={() => {
-                  setSuccessOpen(false);
-                  router.push('/applications');
-                }}
+                onClick={() => setSuccessOpen(false)}
               >
                 تم
               </button>

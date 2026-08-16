@@ -1,36 +1,59 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CatalogService } from '../catalog/catalog.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ApplicationStatus } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ApplicationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private catalog: CatalogService,
+  ) {}
 
-  async create(userId: string, dto: CreateApplicationDto) {
-    const unique = new Set(dto.itemIds);
-    if (unique.size !== 3) {
+  async create(dto: CreateApplicationDto) {
+    const keys = dto.choices.map(
+      (c) => `${c.fieldId}:${c.majorId}:${c.stageId}:${c.countryId}:${c.universityId}`,
+    );
+    if (new Set(keys).size !== 3) {
       throw new BadRequestException('يجب اختيار 3 خيارات مختلفة');
     }
 
-    const items = await this.prisma.compareItem.findMany({
-      where: { userId, id: { in: dto.itemIds } },
-      include: { field: true, major: true, stage: true, country: true, university: true },
-    });
-    if (items.length !== 3) {
-      throw new BadRequestException('بعض الخيارات غير موجودة في قائمة المقارنة');
+    const quotes = [];
+    for (const choice of dto.choices) {
+      quotes.push(await this.catalog.computeQuote(choice));
     }
 
-    const byId = Object.fromEntries(items.map((i) => [i.id, i]));
-    const ordered = dto.itemIds.map((id) => byId[id]);
+    const fullName = dto.fullName.trim();
+    const phone = dto.phone.trim();
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 8) {
+      throw new BadRequestException('رقم الهاتف غير صالح');
+    }
+    const email = `g-${digits}@guest.ejabi.local`;
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
+
+    const user = await this.prisma.user.upsert({
+      where: { email },
+      update: { fullName, phone },
+      create: {
+        email,
+        fullName,
+        phone,
+        passwordHash,
+        role: 'STUDENT',
+      },
+    });
 
     return this.prisma.application.create({
       data: {
-        userId,
+        userId: user.id,
         status: 'PENDING',
         choices: {
-          create: ordered.map((item, index) => ({
+          create: quotes.map((item, index) => ({
             preferenceOrder: index + 1,
             fieldLabel: item.field.labelAr,
             majorLabel: item.major.isCustom
