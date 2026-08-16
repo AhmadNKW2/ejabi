@@ -2,7 +2,7 @@ import confetti from 'canvas-confetti';
 
 export function fireRealisticConfetti() {
   const count = 200;
-  const defaults = { origin: { y: 0.7 } };
+  const defaults = { origin: { y: 0.7 }, zIndex: 2000 };
 
   function fire(particleRatio: number, opts: confetti.Options) {
     void confetti({

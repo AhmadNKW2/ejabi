@@ -30,9 +30,10 @@ import { api, ApiError, mediaSrc } from '@/lib/api';
 import { formatUsd, majorLabel } from '@/lib/format';
 import { fireRealisticConfetti } from '@/lib/confetti';
 import { fieldImage, majorImage, stageImage } from '@/lib/catalog-images';
-import { IconButton } from '@/components/IconButton';
 import { BrandMark } from '@/components/BrandMark';
-import { btnGhost, btnPrimary, cn, inputClass, labelClass } from '@/lib/cn';
+import { OrderSummary } from '@/components/OrderSummary';
+import { IconButton } from '@/components/IconButton';
+import { btnGhost, btnPrimary, cn } from '@/lib/cn';
 
 type Selection = {
   fieldId: string | null;
@@ -53,7 +54,6 @@ const emptySelection: Selection = {
 };
 
 const STORAGE_KEY = 'ejabi-choices';
-const RANK_TITLES = ['الأفضلية الأولى', 'الأفضلية الثانية', 'الأفضلية الثالثة'];
 
 const STEPS: { key: StepKey; n: number; label: string; hint: string }[] = [
   { key: 'country', n: 1, label: 'الدولة', hint: 'ابدأ من الدولة — باقي الخيارات تُبنى عليها.' },
@@ -75,6 +75,14 @@ function StepGlyph({ name, size = 18 }: { name: StepKey; size?: number }) {
   const Icon = STEP_ICONS[name];
   return <Icon size={size} strokeWidth={1.85} aria-hidden />;
 }
+
+const NEXT_AFTER: Record<keyof Selection, StepKey | null> = {
+  countryId: 'field',
+  fieldId: 'major',
+  majorId: 'university',
+  universityId: 'stage',
+  stageId: null,
+};
 
 function derivedStep(selection: Selection): StepKey {
   if (!selection.countryId) return 'country';
@@ -102,6 +110,7 @@ export function Ejabi() {
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [items, setItems] = useState<CompareItemDto[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryPage, setSummaryPage] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [replaceId, setReplaceId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -132,7 +141,16 @@ export function Ejabi() {
     api<CatalogResponse>('/catalog').then(setCatalog).catch(() => setCatalog(null));
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw) as CompareItemDto[]);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CompareItemDto[] | { items?: CompareItemDto[]; fullName?: string; phone?: string };
+        const list = Array.isArray(parsed) ? parsed : parsed.items ?? [];
+        setItems(list);
+        if (!Array.isArray(parsed)) {
+          if (parsed.fullName) setFullName(parsed.fullName);
+          if (parsed.phone) setPhone(parsed.phone);
+        }
+        if (list.length === 3) setSummaryPage(true);
+      }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -141,8 +159,12 @@ export function Ejabi() {
 
   useEffect(() => {
     if (!choicesReady) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, choicesReady]);
+    if (items.length === 0 && !fullName && !phone) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, fullName, phone }));
+  }, [items, fullName, phone, choicesReady]);
 
   useEffect(() => {
     if (!actionsEl) return;
@@ -158,11 +180,11 @@ export function Ejabi() {
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
       if (successOpen) setSuccessOpen(false);
-      else setSummaryOpen(false);
+      else closeSummaryOverlay();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [summaryOpen, successOpen]);
+  }, [summaryOpen, successOpen, items.length]);
 
   const canQuote = Boolean(
     selection.fieldId && selection.majorId && selection.stageId && selection.countryId && selection.universityId,
@@ -186,7 +208,10 @@ export function Ejabi() {
   }, [canQuote, selection.fieldId, selection.majorId, selection.stageId, selection.countryId, selection.universityId]);
 
   function pick(group: keyof Selection, id: string) {
-    setFocusStep(null);
+    if (selection[group] === id) {
+      setFocusStep(NEXT_AFTER[group]);
+      return;
+    }
     setSelection((prev) => {
       const next = { ...prev, [group]: id };
       if (group === 'fieldId') {
@@ -194,13 +219,18 @@ export function Ejabi() {
         next.universityId = null;
         next.stageId = null;
       }
-      if (group === 'majorId' || group === 'countryId') {
+      if (group === 'countryId') {
+        next.universityId = null;
+        next.stageId = null;
+      }
+      if (group === 'majorId') {
         next.universityId = null;
         next.stageId = null;
       }
       if (group === 'universityId') next.stageId = null;
       return next;
     });
+    setFocusStep(NEXT_AFTER[group]);
   }
 
   function scrollToBuilder() {
@@ -216,7 +246,37 @@ export function Ejabi() {
 
   function continueChoosing() {
     setSummaryOpen(false);
+    setSummaryPage(false);
     scrollToBuilder();
+  }
+
+  function closeSummaryOverlay() {
+    setSummaryOpen(false);
+    if (items.length === 3) {
+      setSummaryPage(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelReplace() {
+    setReplaceId(null);
+    setSelection(emptySelection);
+    setFocusStep(null);
+    setQuote(null);
+    if (items.length === 3) {
+      setSummaryPage(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function openChoices() {
+    if (items.length === 3) {
+      setSummaryPage(true);
+      setSummaryOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setSummaryOpen(true);
   }
 
   async function addChoice() {
@@ -262,21 +322,39 @@ export function Ejabi() {
     setReplaceId(null);
     setError('');
     resetBoard();
-    setSummaryOpen(true);
-    if (!replaceId && next.length === 3) fireRealisticConfetti();
+    if (next.length === 3) {
+      setSummaryOpen(false);
+      setSummaryPage(true);
+      if (!replaceId) fireRealisticConfetti();
+    } else {
+      setSummaryOpen(true);
+    }
   }
 
   function removeItem(id: string) {
-    setItems((list) => list.filter((item) => item.id !== id));
+    setItems((list) => {
+      const next = list.filter((item) => item.id !== id);
+      if (next.length < 3) setSummaryPage(false);
+      return next;
+    });
   }
 
   function changeItem(id: string) {
+    const item = items.find((row) => row.id === id);
+    if (!item) return;
     setReplaceId(id);
     setSummaryOpen(false);
-    setSelection(emptySelection);
-    setFocusStep(null);
+    setSummaryPage(false);
+    setSelection({
+      fieldId: item.fieldId,
+      majorId: item.majorId,
+      stageId: item.stageId,
+      countryId: item.countryId,
+      universityId: item.universityId,
+    });
+    setFocusStep('country');
     setQuote(null);
-    scrollToBuilder();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function submitApplication() {
@@ -304,8 +382,11 @@ export function Ejabi() {
       });
       fireRealisticConfetti();
       setSummaryOpen(false);
+      setSummaryPage(false);
       setSuccessOpen(true);
       setItems([]);
+      setFullName('');
+      setPhone('');
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'تعذر رفع الطلب');
@@ -332,7 +413,25 @@ export function Ejabi() {
   }
 
   return (
-    <div className={cn('home flex flex-col gap-[15px]', showDock && 'max-[720px]:pb-[84px]')}>
+    <div className={cn('home flex flex-col gap-[15px]', showDock && !summaryPage && 'max-[720px]:pb-[84px]')}>
+      {summaryPage && items.length === 3 ? (
+        <OrderSummary
+          asPage
+          items={items}
+          error={error}
+          fullName={fullName}
+          phone={phone}
+          submitting={submitting}
+          onFullName={setFullName}
+          onPhone={setPhone}
+          onContinue={continueChoosing}
+          onChangeItem={changeItem}
+          onRemoveItem={removeItem}
+          onReorder={setItems}
+          onSubmit={submitApplication}
+        />
+      ) : (
+        <>
       <header className="flex flex-row items-center justify-start gap-y-4 gap-x-7 px-1 pb-3 pt-2 max-[820px]:gap-x-5 max-[720px]:gap-x-4">
         <BrandMark
           className="h-[150px] w-[150px] max-[820px]:h-[148px] max-[820px]:w-[148px] max-[720px]:h-[120px] max-[720px]:w-[120px]"
@@ -351,22 +450,71 @@ export function Ejabi() {
       {replaceId ? (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-amber-wash px-4 py-3">
           <p className="m-0 text-sm leading-[1.7] text-paper">
-            <strong className="font-cairo text-amber">وضع التعديل.</strong> أكمل مسارًا جديدًا ثم احفظه مكان الخيار السابق.
+            <strong className="font-cairo text-amber">وضع التعديل.</strong> غيّر الخطوات أدناه ثم احفظ. باقي خياراتك تبقى ظاهرة.
           </p>
-          <button type="button" className={btnGhost} onClick={() => setReplaceId(null)}>
+          <button type="button" className={btnGhost} onClick={cancelReplace}>
             إلغاء
           </button>
         </div>
       ) : null}
 
       {items.length > 0 ? (
-        <button
-          type="button"
-          className="self-center rounded-full border-0 bg-amber/10 px-4 py-[9px] font-cairo text-[13px] font-extrabold text-amber hover:bg-amber/20"
-          onClick={() => setSummaryOpen(true)}
-        >
-          عرض خياراتك · {items.length} من 3
-        </button>
+        <section className="grid gap-2" aria-label="خياراتك المختارة">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <p className="m-0 font-cairo text-xs font-extrabold text-amber">خياراتك · {items.length} من 3</p>
+            {items.length < 3 ? (
+              <button
+                type="button"
+                className="cursor-pointer rounded-full border-0 bg-transparent px-2 py-1 font-cairo text-[12.5px] font-extrabold text-slate hover:text-amber"
+                onClick={openChoices}
+              >
+                عرض الملخص
+              </button>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-3 gap-2 max-[720px]:grid-cols-1">
+            {[0, 1, 2].map((index) => {
+              const item = items[index];
+              if (!item) {
+                return (
+                  <div
+                    key={`empty-${index}`}
+                    className="flex min-h-[72px] items-center gap-3 rounded-2xl bg-ink-2 px-3.5 py-3 text-slate"
+                  >
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink-3 font-cairo text-sm font-black">
+                      {index + 1}
+                    </span>
+                    <span className="text-[13px]">لم يُضف بعد</span>
+                  </div>
+                );
+              }
+              const editing = replaceId === item.id;
+              return (
+                <article
+                  key={item.id}
+                  className={cn(
+                    'grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl bg-ink-2 px-3.5 py-3',
+                    editing && 'bg-amber-wash ring-1 ring-amber/50',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink-3 font-cairo text-sm font-black text-slate',
+                      editing && 'bg-amber text-ink',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="m-0 truncate font-cairo text-[14.5px] font-extrabold text-paper">{item.university.labelAr}</h4>
+                    <p className="m-0 truncate text-[12.5px] text-slate">{majorLabel(item)}</p>
+                  </div>
+                  <IconButton icon="edit" label="تعديل" onClick={() => changeItem(item.id)} />
+                </article>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
 
       <div>
@@ -555,211 +703,48 @@ export function Ejabi() {
           </button>
         </div>
       ) : null}
+        </>
+      )}
 
       <AnimatePresence>
-        {summaryOpen ? (
+        {summaryOpen && !summaryPage ? (
           <motion.div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-[#060c14]/[0.78] p-4 backdrop-blur-[10px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
-            onClick={() => setSummaryOpen(false)}
+            onClick={closeSummaryOverlay}
           >
             <motion.div
-              className="flex max-h-[min(880px,calc(100vh-32px))] w-[min(820px,100%)] flex-col overflow-hidden rounded-[22px] bg-ink-2 text-right shadow-sheet"
               role="dialog"
-              aria-labelledby="order-sheet-title"
+              aria-labelledby="sheet-order-title"
               aria-modal="true"
               initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <header className="grid grid-cols-[1fr_auto_auto] items-start gap-4 border-b border-line bg-amber-fade px-[22px] pb-[18px] pt-[22px] max-[720px]:grid-cols-[1fr_auto]">
-                <div>
-                  <p className="mb-1 font-cairo text-[11.5px] font-extrabold tracking-[0.8px] text-amber">خياراتك الدراسية</p>
-                  <h3 id="order-sheet-title" className="mb-1.5 font-cairo text-2xl font-black text-paper">
-                    ملخص الترتيب
-                  </h3>
-                  <p className="m-0 max-w-[46ch] text-[13.5px] leading-[1.8] text-slate">
-                    {items.length === 3
-                      ? 'ترتيبك مكتمل. أدخل اسمك ورقم هاتفك ثم اضغط «إرسال الطلب».'
-                      : 'ثلاثة خيارات مرتبة حسب الأفضلية. غيّر أو احذف أي خيار قبل التقديم.'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 pt-1 max-[720px]:col-start-1" aria-label={`تم اختيار ${items.length} من 3`}>
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink-3 font-cairo text-xs font-black text-slate',
-                        i < items.length && 'bg-amber text-ink',
-                      )}
-                    >
-                      {i + 1}
-                    </span>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border-0 bg-white/[0.04] p-0 text-paper hover:bg-white/[0.08] hover:text-amber max-[720px]:col-start-2 max-[720px]:row-start-1"
-                  aria-label="إغلاق"
-                  onClick={() => setSummaryOpen(false)}
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-              </header>
-
-              <div className="grid gap-3 overflow-y-auto px-[18px] py-4">
-                {[0, 1, 2].map((index) => {
-                  const item = items[index];
-                  if (!item) {
-                    return (
-                      <button
-                        key={`empty-${index}`}
-                        type="button"
-                        className="grid min-h-[92px] w-full cursor-pointer grid-cols-[auto_1fr] items-center gap-3.5 rounded-2xl border-0 bg-ink-3/60 px-4 py-3.5 text-right font-tajawal font-medium text-slate hover:bg-amber/[0.05] hover:text-paper max-[720px]:grid-cols-[auto_1fr]"
-                        onClick={continueChoosing}
-                      >
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ink-3 font-cairo text-base font-black text-slate">
-                          {index + 1}
-                        </span>
-                        <span className="flex flex-col items-start gap-0.5">
-                          <strong className="font-cairo text-[15px]">{RANK_TITLES[index]}</strong>
-                          <small className="text-[12.5px] opacity-80">لم يُضف بعد — اضغط للعودة إلى اللوحة</small>
-                        </span>
-                      </button>
-                    );
-                  }
-                  return (
-                    <article
-                      key={item.id}
-                      className={cn(
-                        'grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 rounded-2xl bg-ink-3 p-4 text-right max-[720px]:grid-cols-[auto_1fr]',
-                        index === 0 && 'bg-[linear-gradient(180deg,rgba(232,163,61,0.1),theme(colors.ink-3)_70%)]',
-                      )}
-                    >
-                      <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber font-cairo text-base font-black text-ink">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="mb-2.5 flex items-center gap-3">
-                          {item.university.logoUrl ? (
-                            <img className="h-11 w-11 shrink-0 rounded-xl bg-ink-3 object-cover" src={mediaSrc(item.university.logoUrl) || ''} alt="" />
-                          ) : (
-                            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-amber">
-                              <School size={22} strokeWidth={1.7} />
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <div className="mb-0.5 font-cairo text-[11px] font-extrabold text-amber">{RANK_TITLES[index]}</div>
-                            <h4 className="m-0 font-cairo text-[16.5px] font-extrabold leading-[1.35] text-paper">{item.university.labelAr}</h4>
-                            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] leading-[1.6] text-slate">
-                              {majorLabel(item)}
-                              <span className="opacity-50">·</span>
-                              {item.field.labelAr}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-                            {item.country.iso2 ? <img className="h-[13px] w-[18px] rounded-sm object-cover" src={flagUrl(item.country.iso2, 40)} alt="" /> : null}
-                            {item.country.labelAr}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-                            {item.stage.labelAr}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-                            {item.years} سنوات
-                          </span>
-                        </div>
-                      </div>
-                      <div className="min-w-[132px] text-left max-[720px]:col-start-2 max-[720px]:min-w-0 max-[720px]:text-right">
-                        <div className="font-cairo text-lg font-black leading-tight text-amber" dir="ltr">
-                          {formatUsd(item.totalCostUsd)}
-                        </div>
-                        <div className="mt-1 text-xs text-slate">سعر المرحلة</div>
-                      </div>
-                      <div className="flex items-center gap-2 max-[720px]:col-start-2 max-[720px]:justify-start">
-                        <IconButton icon="edit" label="تغيير" onClick={() => changeItem(item.id)} />
-                        <IconButton icon="delete" label="حذف" tone="danger" onClick={() => removeItem(item.id)} />
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-              <footer className="flex flex-col gap-3.5 border-t border-line bg-black/[0.12] px-[18px] pb-[18px] pt-3.5">
-                {items.length === 3 ? (
-                  <div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
-                    <div>
-                      <label className={labelClass} htmlFor="applicant-name">
-                        اسمك
-                      </label>
-                      <input
-                        id="applicant-name"
-                        className={inputClass}
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="الاسم الكامل"
-                        autoComplete="name"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass} htmlFor="applicant-phone">
-                        رقم هاتفك
-                      </label>
-                      <input
-                        id="applicant-phone"
-                        className={inputClass}
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="07xxxxxxxxx"
-                        inputMode="tel"
-                        autoComplete="tel"
-                      />
-                    </div>
-                  </div>
-                ) : null}
-                {error ? <p className="m-0 text-[13px] text-danger">{error}</p> : null}
-                <div className="flex flex-wrap items-center justify-between gap-3.5 max-[720px]:flex-col max-[720px]:items-stretch">
-                  <p className="m-0 min-w-[180px] flex-1 text-[13px] leading-[1.7] text-slate">
-                    {items.length === 3
-                      ? 'جاهز للإرسال بعد إدخال الاسم ورقم الهاتف.'
-                      : items.length === 2
-                        ? 'يتبقى خيار واحد لإكمال الترتيب.'
-                        : items.length === 1
-                          ? 'يتبقى خياران لإكمال الترتيب.'
-                          : 'ابدأ بإضافة خيارك الأول من اللوحة.'}
-                  </p>
-                  <div className="flex flex-wrap gap-2.5 max-[720px]:w-full max-[720px]:[&>button]:flex-1">
-                    <button
-                      type="button"
-                      className="cursor-pointer rounded-[9px] border-0 bg-ink-3 px-[18px] py-[11px] font-cairo text-[14.5px] font-bold text-paper hover:bg-white/[0.08]"
-                      onClick={items.length < 3 ? continueChoosing : () => setSummaryOpen(false)}
-                    >
-                      {items.length < 3 ? 'متابعة الاختيار' : 'إغلاق'}
-                    </button>
-                    <button
-                      type="button"
-                      className="min-w-[148px] cursor-pointer rounded-[9px] border-0 bg-amber px-[22px] py-[11px] font-cairo text-[14.5px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-35"
-                      onClick={submitApplication}
-                      disabled={items.length !== 3 || submitting || fullName.trim().length < 2 || phone.trim().length < 8}
-                    >
-                      {submitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'}
-                    </button>
-                  </div>
-                </div>
-              </footer>
+              <OrderSummary
+                items={items}
+                error={error}
+                fullName={fullName}
+                phone={phone}
+                submitting={submitting}
+                onFullName={setFullName}
+                onPhone={setPhone}
+                onClose={closeSummaryOverlay}
+                onContinue={continueChoosing}
+                onChangeItem={changeItem}
+                onRemoveItem={removeItem}
+                onReorder={setItems}
+                onSubmit={submitApplication}
+              />
             </motion.div>
           </motion.div>
         ) : null}
       </AnimatePresence>
-
       <AnimatePresence>
         {successOpen ? (
           <motion.div
