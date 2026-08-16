@@ -7,6 +7,7 @@ import {
   groupApplicationChoices,
 } from '@ejabi/shared';
 import { formatUsd } from '@/lib/format';
+import { School } from 'lucide-react';
 
 export function ApplicationChoiceTree({ choices }: { choices: ApplicationChoiceDto[] }) {
   const universities = groupApplicationChoices(choices);
@@ -18,8 +19,8 @@ export function ApplicationChoiceTree({ choices }: { choices: ApplicationChoiceD
         return (
           <section key={`${uni.universityLabel}-${uni.countryLabel}`} className="rounded-2xl bg-ink-3 p-3.5">
             <header className="mb-3 flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/5 text-xl" aria-hidden>
-                🏫
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/5 text-amber" aria-hidden>
+                <School size={22} strokeWidth={1.7} />
               </span>
               <div>
                 <h3 className="m-0 font-cairo text-[17px] font-extrabold leading-[1.35] text-paper">{uni.universityLabel}</h3>

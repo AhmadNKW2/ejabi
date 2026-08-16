@@ -52,7 +52,7 @@ model Field {
   slug         String        @unique
   labelAr      String
   labelEn      String        @default("")
-  icon         String        @default("📁")
+  icon         String        @default("")
   sortOrder    Int           @default(0)
   isActive     Boolean       @default(true)
   majors       Major[]
@@ -66,7 +66,7 @@ model Major {
   field             Field              @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   labelAr           String
   labelEn           String             @default("")
-  icon              String             @default("📘")
+  icon              String             @default("")
   isCustom          Boolean            @default(false)
   sortOrder         Int                @default(0)
   isActive          Boolean            @default(true)
@@ -80,7 +80,7 @@ model Stage {
   slug         String                @unique
   labelAr      String
   labelEn      String                @default("")
-  icon         String                @default("🎓")
+  icon         String                @default("")
   years        Int                   @default(4)
   sortOrder    Int                   @default(0)
   isActive     Boolean               @default(true)

@@ -23,34 +23,34 @@ const countries = [
 ];
 
 const fields = [
-  { slug: 'design', labelAr: 'التصميم الجرافيكي', labelEn: 'Graphic Design', icon: '🎨', sortOrder: 1 },
-  { slug: 'biz', labelAr: 'الأعمال', labelEn: 'Business', icon: '💼', sortOrder: 2 },
-  { slug: 'fashion', labelAr: 'الأزياء', labelEn: 'Fashion', icon: '👗', sortOrder: 3 },
-  { slug: 'eng', labelAr: 'الهندسة', labelEn: 'Engineering', icon: '⚙️', sortOrder: 4 },
-  { slug: 'edu', labelAr: 'التعليم', labelEn: 'Education', icon: '📚', sortOrder: 5 },
-  { slug: 'tech', labelAr: 'التكنولوجيا', labelEn: 'Technology', icon: '💻', sortOrder: 6 },
-  { slug: 'tourism', labelAr: 'السياحة', labelEn: 'Tourism', icon: '✈️', sortOrder: 7 },
-  { slug: 'health', labelAr: 'الصحة', labelEn: 'Health', icon: '🏥', sortOrder: 8 },
-  { slug: 'media', labelAr: 'الإعلام', labelEn: 'Media', icon: '📺', sortOrder: 9 },
-  { slug: 'law', labelAr: 'القانون', labelEn: 'Law', icon: '⚖️', sortOrder: 10 },
-  { slug: 'science', labelAr: 'العلوم', labelEn: 'Science', icon: '🔬', sortOrder: 11 },
+  { slug: 'design', labelAr: 'التصميم الجرافيكي', labelEn: 'Graphic Design', icon: '', sortOrder: 1 },
+  { slug: 'biz', labelAr: 'الأعمال', labelEn: 'Business', icon: '', sortOrder: 2 },
+  { slug: 'fashion', labelAr: 'الأزياء', labelEn: 'Fashion', icon: '', sortOrder: 3 },
+  { slug: 'eng', labelAr: 'الهندسة', labelEn: 'Engineering', icon: '', sortOrder: 4 },
+  { slug: 'edu', labelAr: 'التعليم', labelEn: 'Education', icon: '', sortOrder: 5 },
+  { slug: 'tech', labelAr: 'التكنولوجيا', labelEn: 'Technology', icon: '', sortOrder: 6 },
+  { slug: 'tourism', labelAr: 'السياحة', labelEn: 'Tourism', icon: '', sortOrder: 7 },
+  { slug: 'health', labelAr: 'الصحة', labelEn: 'Health', icon: '', sortOrder: 8 },
+  { slug: 'media', labelAr: 'الإعلام', labelEn: 'Media', icon: '', sortOrder: 9 },
+  { slug: 'law', labelAr: 'القانون', labelEn: 'Law', icon: '', sortOrder: 10 },
+  { slug: 'science', labelAr: 'العلوم', labelEn: 'Science', icon: '', sortOrder: 11 },
 ];
 
 const majors = [
-  { slug: 'graphic', field: 'design', labelAr: 'تصميم جرافيك', labelEn: 'Graphic Design', icon: '🎨', base: 28000, sortOrder: 1 },
-  { slug: 'business', field: 'biz', labelAr: 'إدارة أعمال', labelEn: 'Business Administration', icon: '📊', base: 32000, sortOrder: 1 },
-  { slug: 'fashion-des', field: 'fashion', labelAr: 'تصميم أزياء', labelEn: 'Fashion Design', icon: '👗', base: 30000, sortOrder: 1 },
-  { slug: 'mecheng', field: 'eng', labelAr: 'هندسة ميكانيكية', labelEn: 'Mechanical Engineering', icon: '🔧', base: 34000, sortOrder: 1 },
-  { slug: 'eleceng', field: 'eng', labelAr: 'هندسة كهرباء', labelEn: 'Electrical Engineering', icon: '⚡', base: 34000, sortOrder: 2 },
-  { slug: 'education', field: 'edu', labelAr: 'علوم التربية', labelEn: 'Education', icon: '📚', base: 22000, sortOrder: 1 },
-  { slug: 'ai', field: 'tech', labelAr: 'ذكاء اصطناعي', labelEn: 'Artificial Intelligence', icon: '🤖', base: 38000, sortOrder: 1 },
-  { slug: 'aviation', field: 'tourism', labelAr: 'طيران', labelEn: 'Aviation', icon: '🛫', base: 45000, sortOrder: 1 },
-  { slug: 'tourism-mgt', field: 'tourism', labelAr: 'إدارة سياحة', labelEn: 'Tourism Management', icon: '🗺️', base: 24000, sortOrder: 2 },
-  { slug: 'pharmacy', field: 'health', labelAr: 'صيدلة', labelEn: 'Pharmacy', icon: '💊', base: 40000, sortOrder: 1 },
-  { slug: 'nursing', field: 'health', labelAr: 'تمريض', labelEn: 'Nursing', icon: '🩺', base: 30000, sortOrder: 2 },
-  { slug: 'media-st', field: 'media', labelAr: 'إعلام', labelEn: 'Media Studies', icon: '📺', base: 26000, sortOrder: 1 },
-  { slug: 'law-st', field: 'law', labelAr: 'قانون', labelEn: 'Law', icon: '⚖️', base: 30000, sortOrder: 1 },
-  { slug: 'science-st', field: 'science', labelAr: 'علوم عامة', labelEn: 'General Science', icon: '🔬', base: 25000, sortOrder: 1 },
+  { slug: 'graphic', field: 'design', labelAr: 'تصميم جرافيك', labelEn: 'Graphic Design', icon: '', base: 28000, sortOrder: 1 },
+  { slug: 'business', field: 'biz', labelAr: 'إدارة أعمال', labelEn: 'Business Administration', icon: '', base: 32000, sortOrder: 1 },
+  { slug: 'fashion-des', field: 'fashion', labelAr: 'تصميم أزياء', labelEn: 'Fashion Design', icon: '', base: 30000, sortOrder: 1 },
+  { slug: 'mecheng', field: 'eng', labelAr: 'هندسة ميكانيكية', labelEn: 'Mechanical Engineering', icon: '', base: 34000, sortOrder: 1 },
+  { slug: 'eleceng', field: 'eng', labelAr: 'هندسة كهرباء', labelEn: 'Electrical Engineering', icon: '', base: 34000, sortOrder: 2 },
+  { slug: 'education', field: 'edu', labelAr: 'علوم التربية', labelEn: 'Education', icon: '', base: 22000, sortOrder: 1 },
+  { slug: 'ai', field: 'tech', labelAr: 'ذكاء اصطناعي', labelEn: 'Artificial Intelligence', icon: '', base: 38000, sortOrder: 1 },
+  { slug: 'aviation', field: 'tourism', labelAr: 'طيران', labelEn: 'Aviation', icon: '', base: 45000, sortOrder: 1 },
+  { slug: 'tourism-mgt', field: 'tourism', labelAr: 'إدارة سياحة', labelEn: 'Tourism Management', icon: '', base: 24000, sortOrder: 2 },
+  { slug: 'pharmacy', field: 'health', labelAr: 'صيدلة', labelEn: 'Pharmacy', icon: '', base: 40000, sortOrder: 1 },
+  { slug: 'nursing', field: 'health', labelAr: 'تمريض', labelEn: 'Nursing', icon: '', base: 30000, sortOrder: 2 },
+  { slug: 'media-st', field: 'media', labelAr: 'إعلام', labelEn: 'Media Studies', icon: '', base: 26000, sortOrder: 1 },
+  { slug: 'law-st', field: 'law', labelAr: 'قانون', labelEn: 'Law', icon: '', base: 30000, sortOrder: 1 },
+  { slug: 'science-st', field: 'science', labelAr: 'علوم عامة', labelEn: 'General Science', icon: '', base: 25000, sortOrder: 1 },
 ];
 
 const countryPriceFactor: Record<string, number> = {
@@ -63,10 +63,10 @@ const countryPriceFactor: Record<string, number> = {
 };
 
 const stages = [
-  { slug: 'diploma', labelAr: 'دبلوم', labelEn: 'Diploma', icon: '📜', years: 2, sortOrder: 1 },
-  { slug: 'bachelor', labelAr: 'بكالوريوس', labelEn: 'Bachelor', icon: '🎓', years: 4, sortOrder: 2 },
-  { slug: 'master', labelAr: 'ماجستير', labelEn: 'Master', icon: '🎩', years: 2, sortOrder: 3 },
-  { slug: 'phd', labelAr: 'دكتوراه', labelEn: 'PhD', icon: '🧠', years: 4, sortOrder: 4 },
+  { slug: 'diploma', labelAr: 'دبلوم', labelEn: 'Diploma', icon: '', years: 2, sortOrder: 1 },
+  { slug: 'bachelor', labelAr: 'بكالوريوس', labelEn: 'Bachelor', icon: '', years: 4, sortOrder: 2 },
+  { slug: 'master', labelAr: 'ماجستير', labelEn: 'Master', icon: '', years: 2, sortOrder: 3 },
+  { slug: 'phd', labelAr: 'دكتوراه', labelEn: 'PhD', icon: '', years: 4, sortOrder: 4 },
 ];
 
 const universities: Record<string, { slug: string; labelAr: string; labelEn: string; logoUrl: string }[]> = {

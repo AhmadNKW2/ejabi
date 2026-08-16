@@ -13,10 +13,9 @@ export default function StagesPage() {
         fields={[
           { key: 'labelAr', label: 'الاسم بالعربي', type: 'text' },
           { key: 'labelEn', label: 'الاسم بالإنجليزي', type: 'text' },
-          { key: 'icon', label: 'الأيقونة', type: 'icon' },
           { key: 'years', label: 'عدد السنوات', type: 'number', step: '1' },
         ]}
-        defaults={{ icon: '🎓', years: '4', isActive: true }}
+        defaults={{ icon: '', years: '4', isActive: true }}
         toForm={(r) => ({
           labelAr: r.labelAr,
           labelEn: r.labelEn,
@@ -27,13 +26,12 @@ export default function StagesPage() {
         fromForm={(f) => ({
           labelAr: f.labelAr,
           labelEn: f.labelEn,
-          icon: f.icon || '🎓',
+          icon: '',
           years: Number(f.years),
           isActive: f.isActive !== false,
         })}
         renderItem={(r) => (
           <div className="flex items-center gap-3">
-            <span className="text-xl">{r.icon}</span>
             <div>
               <div className="font-bold">{r.labelAr}</div>
               <div className="text-xs text-slate">{r.labelEn}</div>

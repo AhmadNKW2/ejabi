@@ -65,7 +65,7 @@ function AddMajorSelect({
         placeholder={majors.length === 0 ? 'لا توجد تخصصات في قاعدة البيانات' : 'اختر تخصصًا'}
         options={majors.map((m) => ({
           value: m.id,
-          label: `${m.icon} ${m.labelAr}`,
+          label: m.labelAr,
           sub: m.labelEn,
           disabled: added.has(m.id),
         }))}
@@ -569,7 +569,7 @@ function UniversitiesWorkspace() {
                             className="sticky top-0 z-[2] whitespace-nowrap border-b border-line bg-ink-2 px-2.5 py-3 text-center font-cairo font-extrabold text-amber"
                           >
                             <div>
-                              {stage.icon} {stage.labelAr}
+                              {stage.labelAr}
                             </div>
                             <div className="mt-0.5 text-[11px] font-medium text-slate">{stage.years} سنوات</div>
                           </th>
@@ -584,7 +584,7 @@ function UniversitiesWorkspace() {
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <div className="font-bold">
-                                    {major.icon} {major.labelAr}
+                                    {major.labelAr}
                                   </div>
                                   <div className="text-[11px] font-medium text-slate">{major.labelEn}</div>
                                 </div>

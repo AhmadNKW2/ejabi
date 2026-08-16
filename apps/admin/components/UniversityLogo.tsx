@@ -1,6 +1,7 @@
 'use client';
 
 import { mediaSrc } from '@/lib/api';
+import { School } from 'lucide-react';
 
 export function UniversityLogo({
   src,
@@ -26,9 +27,9 @@ export function UniversityLogo({
   return (
     <span
       style={style}
-      className={`inline-flex shrink-0 items-center justify-center rounded-2xl bg-ink-3 text-lg ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-2xl bg-ink-3 text-amber ${className}`}
     >
-      🏫
+      <School size={Math.max(16, Math.round(size * 0.45))} strokeWidth={1.7} />
     </span>
   );
 }

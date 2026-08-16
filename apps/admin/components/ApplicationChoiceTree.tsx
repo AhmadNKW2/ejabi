@@ -6,6 +6,7 @@ import {
   flagUrl,
   groupApplicationChoices,
 } from '@ejabi/shared';
+import { School } from 'lucide-react';
 
 function money(value: number | null) {
   return value == null ? 'تُحدد لاحقًا' : `$${value.toLocaleString('en-US')}`;
@@ -21,7 +22,9 @@ export function ApplicationChoiceTree({ choices }: { choices: ApplicationChoiceD
         return (
           <section key={`${uni.universityLabel}-${uni.countryLabel}`} className="rounded-2xl bg-ink-3 p-4">
             <header className="mb-3 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-xl">🏫</span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-amber">
+                <School size={22} strokeWidth={1.7} />
+              </span>
               <div>
                 <h3 className="font-cairo text-lg font-extrabold text-paper">{uni.universityLabel}</h3>
                 <p className="mt-0.5 flex items-center gap-2 text-sm text-slate">

@@ -88,7 +88,6 @@ export function MajorStageOfferings({
                     checked={checked}
                     onChange={() => toggleMajor(major.value)}
                   />
-                  {major.icon}
                   <span className="min-w-0 flex-1 text-sm font-bold">{major.label}</span>
                   {checked ? (
                     <span className="text-[11px] text-slate">

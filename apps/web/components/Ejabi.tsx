@@ -651,13 +651,14 @@ export function Ejabi() {
                           {item.university.logoUrl ? (
                             <img className="h-11 w-11 shrink-0 rounded-xl bg-ink-3 object-cover" src={mediaSrc(item.university.logoUrl) || ''} alt="" />
                           ) : (
-                            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-xl">🏫</span>
+                            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-amber">
+                              <School size={22} strokeWidth={1.7} />
+                            </span>
                           )}
                           <div className="min-w-0">
                             <div className="mb-0.5 font-cairo text-[11px] font-extrabold text-amber">{RANK_TITLES[index]}</div>
                             <h4 className="m-0 font-cairo text-[16.5px] font-extrabold leading-[1.35] text-paper">{item.university.labelAr}</h4>
                             <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] leading-[1.6] text-slate">
-                              <span className="text-[15px] leading-none">{item.major.icon}</span>
                               {majorLabel(item)}
                               <span className="opacity-50">·</span>
                               {item.field.labelAr}
@@ -670,7 +671,6 @@ export function Ejabi() {
                             {item.country.labelAr}
                           </span>
                           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-                            <span className="text-[15px] leading-none">{item.stage.icon}</span>
                             {item.stage.labelAr}
                           </span>
                           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
@@ -778,7 +778,9 @@ export function Ejabi() {
               transition={{ duration: 0.12 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-2.5 text-[42px]">🎉</div>
+              <div className="mb-2.5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-amber text-ink">
+                <Check size={28} strokeWidth={3} aria-hidden />
+              </div>
               <h3 className="mb-3.5 font-cairo text-[22px] font-black text-amber">ممتاز!</h3>
               <p className="mb-6 text-[15px] leading-[2] text-paper">لقد تم رفع الطلب وسيتواصل معك فريقنا لمتابعة التقديم إن شاء الله.</p>
               <button

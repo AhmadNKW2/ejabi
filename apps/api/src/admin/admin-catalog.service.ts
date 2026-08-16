@@ -97,7 +97,7 @@ export class AdminCatalogService {
       data: {
         labelAr: dto.labelAr,
         labelEn: dto.labelEn,
-        icon: dto.icon || '📁',
+        icon: dto.icon || '',
         isActive: dto.isActive ?? true,
         slug: await this.uniqueSlug('field', dto.labelEn),
         sortOrder: await this.nextOrder('field'),
@@ -126,7 +126,7 @@ export class AdminCatalogService {
         fieldId: dto.fieldId,
         labelAr: dto.labelAr,
         labelEn: dto.labelEn,
-        icon: dto.icon || '📘',
+        icon: dto.icon || '',
         isCustom: dto.isCustom ?? false,
         isActive: dto.isActive ?? true,
         slug: await this.uniqueSlug('major', dto.labelEn),
@@ -152,7 +152,7 @@ export class AdminCatalogService {
       data: {
         labelAr: dto.labelAr,
         labelEn: dto.labelEn,
-        icon: dto.icon || '🎓',
+        icon: dto.icon || '',
         years: dto.years,
         isActive: dto.isActive ?? true,
         slug: await this.uniqueSlug('stage', dto.labelEn),

@@ -298,7 +298,7 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
                     onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                     placeholder={
                       f.placeholder ||
-                      (f.type === 'icon' ? 'مثال: 🎓' : f.type === 'url' ? 'https://...' : undefined)
+                      (f.type === 'url' ? 'https://...' : undefined)
                     }
                   />
                   {f.type === 'url' && String(form[f.key] || '') ? (
