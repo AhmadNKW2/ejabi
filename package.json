@@ -1,0 +1,20 @@
+{
+  "name": "ejabi",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @ejabi/api --filter @ejabi/web --filter @ejabi/admin dev",
+    "start": "pnpm dev",
+    "dev:api": "pnpm --filter @ejabi/api dev",
+    "dev:web": "pnpm --filter @ejabi/web dev",
+    "dev:admin": "pnpm --filter @ejabi/admin dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @ejabi/api prisma:migrate",
+    "db:seed": "pnpm --filter @ejabi/api prisma:seed",
+    "db:reset": "pnpm --filter @ejabi/api prisma:reset",
+    "build": "pnpm -r build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

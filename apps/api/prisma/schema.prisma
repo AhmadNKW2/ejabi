@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  CONTACTED
+  IN_PROGRESS
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         Role          @default(STUDENT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  compareItems CompareItem[]
+  applications Application[]
+}
+
+model Country {
+  id                String              @id @default(uuid())
+  slug              String              @unique
+  iso2              String?             @unique
+  labelAr           String
+  labelEn           String              @default("")
+  sortOrder         Int                 @default(0)
+  isActive          Boolean             @default(true)
+  universities      University[]
+  compareItems      CompareItem[]
+}
+
+model Field {
+  id           String        @id @default(uuid())
+  slug         String        @unique
+  labelAr      String
+  labelEn      String        @default("")
+  icon         String        @default("📁")
+  sortOrder    Int           @default(0)
+  isActive     Boolean       @default(true)
+  majors       Major[]
+  compareItems CompareItem[]
+}
+
+model Major {
+  id                String             @id @default(uuid())
+  slug              String             @unique
+  fieldId           String
+  field             Field              @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  labelAr           String
+  labelEn           String             @default("")
+  icon              String             @default("📘")
+  isCustom          Boolean            @default(false)
+  sortOrder         Int                @default(0)
+  isActive          Boolean            @default(true)
+  universities      UniversityMajor[]
+  prices            UniversityMajorStage[]
+  compareItems      CompareItem[]
+}
+
+model Stage {
+  id           String                @id @default(uuid())
+  slug         String                @unique
+  labelAr      String
+  labelEn      String                @default("")
+  icon         String                @default("🎓")
+  years        Int                   @default(4)
+  sortOrder    Int                   @default(0)
+  isActive     Boolean               @default(true)
+  prices       UniversityMajorStage[]
+  compareItems CompareItem[]
+}
+
+model University {
+  id           String                @id @default(uuid())
+  slug         String
+  labelAr      String
+  labelEn      String                @default("")
+  logoUrl      String?
+  countryId    String
+  country      Country               @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  sortOrder    Int                   @default(0)
+  isActive     Boolean               @default(true)
+  majors       UniversityMajor[]
+  prices       UniversityMajorStage[]
+  compareItems CompareItem[]
+
+  @@unique([countryId, slug])
+}
+
+model UniversityMajor {
+  universityId String
+  majorId      String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  major        Major      @relation(fields: [majorId], references: [id], onDelete: Cascade)
+
+  @@id([universityId, majorId])
+}
+
+model UniversityMajorStage {
+  universityId String
+  majorId      String
+  stageId      String
+  costUsd      Int?
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  major        Major      @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  stage        Stage      @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@id([universityId, majorId, stageId])
+}
+
+model CompareItem {
+  id               String     @id @default(uuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fieldId          String
+  field            Field      @relation(fields: [fieldId], references: [id])
+  majorId          String
+  major            Major      @relation(fields: [majorId], references: [id])
+  stageId          String
+  stage            Stage      @relation(fields: [stageId], references: [id])
+  countryId        String
+  country          Country    @relation(fields: [countryId], references: [id])
+  universityId     String
+  university       University @relation(fields: [universityId], references: [id])
+  customMajorLabel String?
+  years            Int
+  annualCostUsd    Int?
+  totalCostUsd     Int?
+  createdAt        DateTime   @default(now())
+}
+
+model Application {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    ApplicationStatus   @default(PENDING)
+  adminNote String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  choices   ApplicationChoice[]
+}
+
+model ApplicationChoice {
+  id              String      @id @default(uuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  preferenceOrder Int
+  fieldLabel      String
+  majorLabel      String
+  stageLabel      String
+  countryLabel    String
+  universityLabel String
+  years           Int
+  annualCostUsd   Int?
+  totalCostUsd    Int?
+
+  @@unique([applicationId, preferenceOrder])
+}
