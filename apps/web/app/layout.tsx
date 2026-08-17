@@ -19,6 +19,10 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'انطلاقتك الدراسية',
   description: 'اختر مسارك الجامعي، قارن السنوات والتكلفة، وقدّم ثلاثة خيارات مرتبة حسب أولويتك.',
+  icons: {
+    icon: [{ url: '/logo.jpg', type: 'image/jpeg' }],
+    apple: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

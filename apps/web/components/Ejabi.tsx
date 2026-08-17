@@ -105,6 +105,8 @@ function isUnlocked(key: StepKey, selection: Selection) {
 
 export function Ejabi() {
   const builderRef = useRef<HTMLElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const pendingSummaryScroll = useRef(false);
   const countryStepRef = useRef<HTMLElement>(null);
   const fieldStepRef = useRef<HTMLElement>(null);
   const majorStepRef = useRef<HTMLElement>(null);
@@ -165,7 +167,10 @@ export function Ejabi() {
           if (parsed.fullName) setFullName(parsed.fullName);
           if (parsed.phone) setPhone(parsed.phone);
         }
-        if (list.length === 3) setSummaryPage(true);
+        if (list.length === 3) {
+          pendingSummaryScroll.current = true;
+          setSummaryPage(true);
+        }
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -190,6 +195,15 @@ export function Ejabi() {
     io.observe(actionsEl);
     return () => io.disconnect();
   }, [actionsEl]);
+
+  useEffect(() => {
+    if (!catalog || !summaryPage || items.length !== 3 || !pendingSummaryScroll.current) return;
+    const id = window.setTimeout(() => {
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pendingSummaryScroll.current = false;
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [catalog, summaryPage, items.length]);
 
   useEffect(() => {
     if (!summaryOpen && !successOpen) return;
@@ -330,6 +344,14 @@ export function Ejabi() {
     scrollToFirstStep();
   }
 
+  function scrollToSummary() {
+    pendingSummaryScroll.current = true;
+    window.setTimeout(() => {
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pendingSummaryScroll.current = false;
+    }, 80);
+  }
+
   function continueChoosing() {
     setSummaryOpen(false);
     setSummaryPage(false);
@@ -339,8 +361,9 @@ export function Ejabi() {
   function closeSummaryOverlay() {
     setSummaryOpen(false);
     if (items.length === 3) {
+      pendingSummaryScroll.current = true;
       setSummaryPage(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToSummary();
     }
   }
 
@@ -350,16 +373,18 @@ export function Ejabi() {
     setFocusStep(null);
     setQuote(null);
     if (items.length === 3) {
+      pendingSummaryScroll.current = true;
       setSummaryPage(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToSummary();
     }
   }
 
   function openChoices() {
     if (items.length === 3) {
+      pendingSummaryScroll.current = true;
       setSummaryPage(true);
       setSummaryOpen(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToSummary();
       return;
     }
     setSummaryOpen(true);
@@ -410,6 +435,7 @@ export function Ejabi() {
     resetBoard({ scroll: false });
     if (next.length === 3) {
       setSummaryOpen(false);
+      pendingSummaryScroll.current = true;
       setSummaryPage(true);
       if (!replaceId) fireRealisticConfetti();
     } else {
@@ -506,25 +532,7 @@ export function Ejabi() {
         show={quoting || submitting}
         label={submitting ? 'جارٍ إرسال الطلب...' : 'جارٍ حساب التكلفة...'}
       />
-      {summaryPage && items.length === 3 ? (
-        <OrderSummary
-          asPage
-          items={items}
-          error={error}
-          fullName={fullName}
-          phone={phone}
-          submitting={submitting}
-          onFullName={setFullName}
-          onPhone={setPhone}
-          onContinue={continueChoosing}
-          onChangeItem={changeItem}
-          onRemoveItem={removeItem}
-          onReorder={setItems}
-          onSubmit={submitApplication}
-          hideMedia={pills}
-        />
-      ) : (
-        <>
+      <div ref={summaryRef} className="flex flex-col gap-[15px] scroll-mt-2">
       <header className="flex flex-row items-center justify-start gap-y-4 gap-x-7 px-1 pb-3 pt-2 max-[820px]:gap-x-5 max-[720px]:gap-x-4">
         <BrandMark
           className="h-[150px] w-[150px] max-[820px]:h-[148px] max-[820px]:w-[148px] max-[720px]:h-[120px] max-[720px]:w-[120px]"
@@ -535,11 +543,31 @@ export function Ejabi() {
             <span className="inline-block h-[7px] w-[7px] rounded-full bg-teal shadow-[0_0_8px_#2c8a84]" /> نظام اختيار المسار الدراسي
           </p>
           <h1 className="m-0 font-cairo text-[clamp(30px,4.6vw,48px)] font-black leading-[1.25] tracking-[0.2px] text-paper">
-            ابنِ انطلاقتك <span className="text-amber">الدراسية</span>
+            <span className="text-amber">ابنِ</span> انطلاقتك الدراسية
           </h1>
         </div>
       </header>
-
+      {summaryPage && items.length === 3 ? (
+        <section aria-label="ملخص الترتيب">
+          <OrderSummary
+            asPage
+            items={items}
+            error={error}
+            fullName={fullName}
+            phone={phone}
+            submitting={submitting}
+            onFullName={setFullName}
+            onPhone={setPhone}
+            onContinue={continueChoosing}
+            onChangeItem={changeItem}
+            onRemoveItem={removeItem}
+            onReorder={setItems}
+            onSubmit={submitApplication}
+            hideMedia={pills}
+          />
+        </section>
+      ) : (
+        <>
       {replaceId ? (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-amber-wash px-4 py-3">
           <p className="m-0 text-sm leading-[1.7] text-paper">
@@ -868,6 +896,7 @@ export function Ejabi() {
       ) : null}
         </>
       )}
+      </div>
 
       <AnimatePresence>
         {summaryOpen && !summaryPage ? (
