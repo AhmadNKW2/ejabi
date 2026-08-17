@@ -838,7 +838,7 @@ export function Ejabi() {
                   </div>
 
                   <div className="flex gap-2.5 max-[720px]:flex-col [&>button]:m-0 [&>button]:flex-1" ref={setActionsEl}>
-                    <button type="button" className={btnGhost} onClick={resetBoard}>
+                    <button type="button" className={btnGhost} onClick={() => resetBoard()}>
                       إعادة المسار
                     </button>
                     <button className={btnPrimary} disabled={addDisabled} onClick={addChoice}>
