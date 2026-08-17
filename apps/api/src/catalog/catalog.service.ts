@@ -17,8 +17,19 @@ function groupMajorStages(prices: { majorId: string; stageId: string; costUsd: n
 export class CatalogService {
   constructor(private prisma: PrismaService) {}
 
+  private catalogCache: { at: number; data: Awaited<ReturnType<CatalogService['loadPublicCatalog']>> } | null = null;
+
   async getPublicCatalog() {
-    const [countries, fields, stages, settings] = await Promise.all([
+    if (this.catalogCache && Date.now() - this.catalogCache.at < 15_000) {
+      return this.catalogCache.data;
+    }
+    const data = await this.loadPublicCatalog();
+    this.catalogCache = { at: Date.now(), data };
+    return data;
+  }
+
+  private async loadPublicCatalog() {
+    const [countries, fields, stages, settingsRow] = await Promise.all([
       this.prisma.country.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
@@ -38,12 +49,11 @@ export class CatalogService {
         },
       }),
       this.prisma.stage.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-      this.prisma.siteSettings.upsert({
-        where: { id: 'default' },
-        create: { id: 'default', catalogView: 'view1' },
-        update: {},
-      }),
+      this.prisma.siteSettings.findUnique({ where: { id: 'default' } }),
     ]);
+    const settings =
+      settingsRow ??
+      (await this.prisma.siteSettings.create({ data: { id: 'default', catalogView: 'view1' } }));
     return {
       catalogView: settings.catalogView === 'view2' ? 'view2' : 'view1',
       countries: countries.map((c) => ({

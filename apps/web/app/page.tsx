@@ -1,5 +1,9 @@
 import { Ejabi } from '@/components/Ejabi';
+import { fetchCatalog } from '@/lib/api';
 
-export default function HomePage() {
-  return <Ejabi />;
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const catalog = await fetchCatalog();
+  return <Ejabi initialCatalog={catalog} />;
 }

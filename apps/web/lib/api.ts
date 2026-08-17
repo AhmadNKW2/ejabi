@@ -1,4 +1,4 @@
-import { mediaUrl } from '@ejabi/shared';
+import { CatalogResponse, mediaUrl } from '@ejabi/shared';
 
 const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 
@@ -49,3 +49,21 @@ export async function api<T>(path: string, options: RequestInit = {}, retry = tr
 
 export const apiUrl = API;
 export const mediaSrc = (src?: string | null) => mediaUrl(src, API);
+
+export async function fetchCatalog(): Promise<CatalogResponse | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const res = await fetch(`${API}/catalog`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}

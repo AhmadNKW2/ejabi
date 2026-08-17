@@ -103,7 +103,7 @@ function isUnlocked(key: StepKey, selection: Selection) {
   return Boolean(selection.universityId);
 }
 
-export function Ejabi() {
+export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogResponse | null }) {
   const builderRef = useRef<HTMLElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const pendingSummaryScroll = useRef(false);
@@ -121,7 +121,7 @@ export function Ejabi() {
   };
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
   const [actionsVisible, setActionsVisible] = useState(false);
-  const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
+  const [catalog, setCatalog] = useState<CatalogResponse | null>(initialCatalog);
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [focusStep, setFocusStep] = useState<StepKey | null>(null);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
@@ -156,7 +156,9 @@ export function Ejabi() {
   const selectedStage = offeredStages.find((s) => s.id === selection.stageId);
 
   useEffect(() => {
-    api<CatalogResponse>('/catalog').then(setCatalog).catch(() => setCatalog(null));
+    if (!initialCatalog) {
+      api<CatalogResponse>('/catalog').then(setCatalog).catch(() => setCatalog(null));
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -176,7 +178,7 @@ export function Ejabi() {
       localStorage.removeItem(STORAGE_KEY);
     }
     setChoicesReady(true);
-  }, []);
+  }, [initialCatalog]);
 
   useEffect(() => {
     if (!choicesReady) return;
