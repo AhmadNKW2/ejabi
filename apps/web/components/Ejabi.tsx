@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
@@ -35,6 +35,7 @@ import { BrandMark } from '@/components/BrandMark';
 import { OrderSummary } from '@/components/OrderSummary';
 import { OptionPills } from '@/components/OptionPills';
 import { IconButton } from '@/components/IconButton';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { btnGhost, btnPrimary, cn } from '@/lib/cn';
 
 type Selection = {
@@ -104,12 +105,25 @@ function isUnlocked(key: StepKey, selection: Selection) {
 
 export function Ejabi() {
   const builderRef = useRef<HTMLElement>(null);
+  const countryStepRef = useRef<HTMLElement>(null);
+  const fieldStepRef = useRef<HTMLElement>(null);
+  const majorStepRef = useRef<HTMLElement>(null);
+  const universityStepRef = useRef<HTMLElement>(null);
+  const stageStepRef = useRef<HTMLElement>(null);
+  const view2StepRefs: Record<StepKey, RefObject<HTMLElement | null>> = {
+    country: countryStepRef,
+    field: fieldStepRef,
+    major: majorStepRef,
+    university: universityStepRef,
+    stage: stageStepRef,
+  };
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
   const [actionsVisible, setActionsVisible] = useState(false);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [focusStep, setFocusStep] = useState<StepKey | null>(null);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const [items, setItems] = useState<CompareItemDto[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryPage, setSummaryPage] = useState(false);
@@ -195,8 +209,12 @@ export function Ejabi() {
   useEffect(() => {
     if (!canQuote) {
       setQuote(null);
+      setQuoting(false);
       return;
     }
+    let cancelled = false;
+    setQuote(null);
+    setQuoting(true);
     const dto: QuoteRequest = {
       fieldId: selection.fieldId!,
       majorId: selection.majorId!,
@@ -205,12 +223,76 @@ export function Ejabi() {
       universityId: selection.universityId!,
     };
     api<QuoteResponse>('/catalog/quote', { method: 'POST', body: JSON.stringify(dto) })
-      .then(setQuote)
-      .catch(() => setQuote(null));
+      .then((row) => {
+        if (!cancelled) setQuote(row);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQuote(null);
+          setError('تعذر حساب التكلفة. حاول مرة أخرى.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setQuoting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [canQuote, selection.fieldId, selection.majorId, selection.stageId, selection.countryId, selection.universityId]);
 
-  function pick(group: keyof Selection, id: string) {
-    if (selection[group] === id) {
+  function scrollToFirstStep() {
+    window.setTimeout(() => {
+      const target = countryStepRef.current || builderRef.current;
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }
+
+  function scrollToNextView2Step(group: keyof Selection) {
+    const next = NEXT_AFTER[group];
+    window.setTimeout(() => {
+      if (next) {
+        view2StepRefs[next].current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      actionsEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }
+
+  function clearFrom(prev: Selection, group: keyof Selection): Selection {
+    const next = { ...prev };
+    if (group === 'countryId') {
+      next.countryId = null;
+      next.fieldId = null;
+      next.majorId = null;
+      next.universityId = null;
+      next.stageId = null;
+    }
+    if (group === 'fieldId') {
+      next.fieldId = null;
+      next.majorId = null;
+      next.universityId = null;
+      next.stageId = null;
+    }
+    if (group === 'majorId') {
+      next.majorId = null;
+      next.universityId = null;
+      next.stageId = null;
+    }
+    if (group === 'universityId') {
+      next.universityId = null;
+      next.stageId = null;
+    }
+    if (group === 'stageId') next.stageId = null;
+    return next;
+  }
+
+  function pick(group: keyof Selection, id: string, toggle = false) {
+    if (toggle && selection[group] === id) {
+      setSelection((prev) => clearFrom(prev, group));
+      setFocusStep(group === 'countryId' ? 'country' : group === 'fieldId' ? 'field' : group === 'majorId' ? 'major' : group === 'universityId' ? 'university' : 'stage');
+      return;
+    }
+    if (!toggle && selection[group] === id) {
       setFocusStep(NEXT_AFTER[group]);
       return;
     }
@@ -233,17 +315,19 @@ export function Ejabi() {
       return next;
     });
     setFocusStep(NEXT_AFTER[group]);
+    if (toggle) scrollToNextView2Step(group);
   }
 
   function scrollToBuilder() {
     builderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function resetBoard() {
+  function resetBoard(opts?: { scroll?: boolean }) {
     setSelection(emptySelection);
     setFocusStep(null);
     setQuote(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (opts?.scroll === false) return;
+    scrollToFirstStep();
   }
 
   function continueChoosing() {
@@ -323,7 +407,7 @@ export function Ejabi() {
     setItems(next);
     setReplaceId(null);
     setError('');
-    resetBoard();
+    resetBoard({ scroll: false });
     if (next.length === 3) {
       setSummaryOpen(false);
       setSummaryPage(true);
@@ -356,7 +440,7 @@ export function Ejabi() {
     });
     setFocusStep('country');
     setQuote(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToFirstStep();
   }
 
   async function submitApplication() {
@@ -418,6 +502,10 @@ export function Ejabi() {
 
   return (
     <div className={cn('home flex flex-col gap-[15px]', showDock && !summaryPage && 'max-[720px]:pb-[84px]')}>
+      <LoadingOverlay
+        show={quoting || submitting}
+        label={submitting ? 'جارٍ إرسال الطلب...' : 'جارٍ حساب التكلفة...'}
+      />
       {summaryPage && items.length === 3 ? (
         <OrderSummary
           asPage
@@ -514,7 +602,10 @@ export function Ejabi() {
                     <h4 className="m-0 truncate font-cairo text-[14.5px] font-extrabold text-paper">{item.university.labelAr}</h4>
                     <p className="m-0 truncate text-[12.5px] text-slate">{majorLabel(item)}</p>
                   </div>
-                  <IconButton icon="edit" label="تعديل" onClick={() => changeItem(item.id)} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <IconButton icon="edit" label="تعديل" onClick={() => changeItem(item.id)} />
+                    <IconButton icon="delete" label="حذف" tone="danger" onClick={() => removeItem(item.id)} />
+                  </div>
                 </article>
               );
             })}
@@ -525,77 +616,67 @@ export function Ejabi() {
       <div>
         <section ref={builderRef} className="min-w-0 overflow-hidden rounded-[22px] bg-ink-2 scroll-mt-[92px]" aria-label="لوحة بناء المسار">
           {pills ? (
-            <div className="flex flex-col gap-7 px-4 py-5 max-[720px]:gap-6 max-[720px]:px-3 max-[720px]:py-4">
-              <PillStep label="الدولة" hint={STEPS[0].hint}>
+            <div className="px-4 py-5 max-[720px]:px-3 max-[720px]:py-4">
+              <AnimatePresence initial={false}>
+              <PillStep key="country" stepRef={countryStepRef} label="الدولة" hint={STEPS[0].hint}>
                 <OptionPills
                   items={catalog.countries.map((c) => ({ id: c.id, label: c.labelAr }))}
                   value={selection.countryId}
-                  onChange={(id) => pick('countryId', id)}
+                  onChange={(id) => pick('countryId', id, true)}
                 />
               </PillStep>
-              <PillStep
-                label="الحقل"
-                hint={STEPS[1].hint}
-                locked={!selection.countryId}
-                lockHint="اختر الدولة أولًا."
-              >
-                <OptionPills
-                  items={catalog.fields.map((f) => ({ id: f.id, label: f.labelAr }))}
-                  value={selection.fieldId}
-                  onChange={(id) => pick('fieldId', id)}
-                />
-              </PillStep>
-              <PillStep
-                label="التخصص"
-                hint={STEPS[2].hint}
-                locked={!selection.countryId || !selection.fieldId}
-                lockHint="اختر الحقل أولًا."
-              >
-                <OptionPills
-                  items={majors.map((m) => ({ id: m.id, label: m.labelAr }))}
-                  value={selection.majorId}
-                  onChange={(id) => pick('majorId', id)}
-                />
-              </PillStep>
-              <PillStep
-                label="الجامعة"
-                hint={STEPS[3].hint}
-                locked={!selection.countryId || !selection.majorId}
-                lockHint="اختر التخصص أولًا."
-              >
-                {universities.length === 0 ? (
-                  <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
-                    لا توجد جامعات لهذا التخصص في هذه الدولة. غيّر التخصص أو الدولة.
-                  </p>
-                ) : (
+              {selection.countryId ? (
+                <PillStep key="field" stepRef={fieldStepRef} label="الحقل" hint={STEPS[1].hint}>
                   <OptionPills
-                    items={universities.map((u) => ({ id: u.id, label: u.labelAr }))}
-                    value={selection.universityId}
-                    onChange={(id) => pick('universityId', id)}
+                    items={catalog.fields.map((f) => ({ id: f.id, label: f.labelAr }))}
+                    value={selection.fieldId}
+                    onChange={(id) => pick('fieldId', id, true)}
                   />
-                )}
-              </PillStep>
-              <PillStep
-                label="المرحلة"
-                hint={STEPS[4].hint}
-                locked={!selection.universityId}
-                lockHint="اختر الجامعة أولًا."
-              >
-                {offeredStages.length === 0 ? (
-                  <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
-                    هذا التخصص لا يُقدَّم في أي مرحلة في هذه الجامعة.
-                  </p>
-                ) : (
+                </PillStep>
+              ) : null}
+              {selection.countryId && selection.fieldId ? (
+                <PillStep key="major" stepRef={majorStepRef} label="التخصص" hint={STEPS[2].hint}>
                   <OptionPills
-                    items={offeredStages.map((s) => ({
-                      id: s.id,
-                      label: s.labelAr,
-                    }))}
-                    value={selection.stageId}
-                    onChange={(id) => pick('stageId', id)}
+                    items={majors.map((m) => ({ id: m.id, label: m.labelAr }))}
+                    value={selection.majorId}
+                    onChange={(id) => pick('majorId', id, true)}
                   />
-                )}
-              </PillStep>
+                </PillStep>
+              ) : null}
+              {selection.countryId && selection.majorId ? (
+                <PillStep key="university" stepRef={universityStepRef} label="الجامعة" hint={STEPS[3].hint}>
+                  {universities.length === 0 ? (
+                    <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
+                      لا توجد جامعات لهذا التخصص في هذه الدولة. غيّر التخصص أو الدولة.
+                    </p>
+                  ) : (
+                    <OptionPills
+                      items={universities.map((u) => ({ id: u.id, label: u.labelAr }))}
+                      value={selection.universityId}
+                      onChange={(id) => pick('universityId', id, true)}
+                    />
+                  )}
+                </PillStep>
+              ) : null}
+              {selection.universityId ? (
+                <PillStep key="stage" stepRef={stageStepRef} label="المرحلة" hint={STEPS[4].hint}>
+                  {offeredStages.length === 0 ? (
+                    <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
+                      هذا التخصص لا يُقدَّم في أي مرحلة في هذه الجامعة.
+                    </p>
+                  ) : (
+                    <OptionPills
+                      items={offeredStages.map((s) => ({
+                        id: s.id,
+                        label: s.labelAr,
+                      }))}
+                      value={selection.stageId}
+                      onChange={(id) => pick('stageId', id, true)}
+                    />
+                  )}
+                </PillStep>
+              ) : null}
+              </AnimatePresence>
             </div>
           ) : (
             <>
@@ -748,7 +829,7 @@ export function Ejabi() {
                       <span className="mb-2 inline-flex items-center justify-center text-amber" aria-hidden>
                         <Wallet size={18} strokeWidth={1.85} />
                       </span>
-                      <span className="mb-1.5 block text-xs text-slate">تكلفة المرحلة</span>
+                      <span className="mb-1.5 block text-xs text-slate">التكلفة الإجمالية</span>
                       <b className="block text-center font-cairo text-[22px] font-black leading-[1.25] text-amber" dir={quote && quote.totalCostUsd != null ? 'ltr' : undefined}>
                         {quote ? formatUsd(quote.totalCostUsd) : '—'}
                         {quote && quote.totalCostUsd != null ? <small className="font-tajawal text-xs font-bold text-slate"> USD</small> : null}
@@ -868,22 +949,27 @@ export function Ejabi() {
 function PillStep({
   label,
   hint,
-  locked = false,
-  lockHint,
   children,
+  stepRef,
 }: {
   label: string;
   hint: string;
-  locked?: boolean;
-  lockHint?: string;
   children: ReactNode;
+  stepRef?: Ref<HTMLElement>;
 }) {
   return (
-    <section className={cn(locked && 'opacity-60')}>
+    <motion.section
+      ref={stepRef}
+      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+      animate={{ opacity: 1, height: 'auto', marginBottom: 28 }}
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="scroll-mt-[92px] overflow-hidden"
+    >
       <h2 className="mb-1 font-cairo text-xl font-black text-paper">{label}</h2>
       <p className="mb-3 max-w-[46ch] text-sm leading-[1.8] text-slate">{hint}</p>
-      {locked ? <p className="m-0 text-sm text-slate">{lockHint}</p> : children}
-    </section>
+      {children}
+    </motion.section>
   );
 }
 

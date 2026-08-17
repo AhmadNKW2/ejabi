@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 
 export function OptionPills({
@@ -18,11 +19,14 @@ export function OptionPills({
       {items.map((item) => {
         const active = value === item.id;
         return (
-          <button
+          <motion.button
             key={item.id}
             type="button"
             aria-pressed={active}
             onClick={() => onChange(item.id)}
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.18 }}
             className={cn(
               'rounded-full border px-3.5 py-2 font-cairo text-sm font-extrabold leading-tight transition-colors',
               active
@@ -41,7 +45,7 @@ export function OptionPills({
                 {item.caption}
               </small>
             ) : null}
-          </button>
+          </motion.button>
         );
       })}
     </div>

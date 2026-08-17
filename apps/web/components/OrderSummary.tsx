@@ -240,7 +240,7 @@ function SortableChoiceCard({
         zIndex: 30,
       }}
       className={cn(
-        'relative grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 rounded-2xl bg-ink-3 p-4 text-right max-[720px]:grid-cols-[auto_1fr]',
+        'relative grid grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-2xl bg-ink-3 p-4 text-right max-[720px]:grid-cols-[auto_1fr]',
         index === 0 && 'bg-[linear-gradient(180deg,rgba(232,163,61,0.1),theme(colors.ink-3)_70%)]',
       )}
     >
@@ -266,54 +266,37 @@ function SortableChoiceCard({
         </div>
       </div>
       <div className="min-w-0">
-        <div className="mb-2.5 flex items-center gap-3">
-          {hideMedia ? null : item.university.logoUrl ? (
-            <img className="h-11 w-11 shrink-0 rounded-xl bg-ink-3 object-cover" src={mediaSrc(item.university.logoUrl) || ''} alt="" />
-          ) : (
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-amber">
-              <School size={22} strokeWidth={1.7} />
-            </span>
-          )}
-          <div className="min-w-0">
-            <div className="mb-0.5 font-cairo text-[11px] font-extrabold text-amber">{RANK_TITLES[index]}</div>
-            <h4 className="m-0 font-cairo text-[16.5px] font-extrabold leading-[1.35] text-paper">{item.university.labelAr}</h4>
-            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] leading-[1.6] text-slate">
-              {majorLabel(item)}
-              <span className="opacity-50">·</span>
-              {item.field.labelAr}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {!hideMedia ? (
+            item.university.logoUrl ? (
+              <img className="h-11 w-11 shrink-0 rounded-xl bg-ink-3 object-cover" src={mediaSrc(item.university.logoUrl) || ''} alt="" />
+            ) : (
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-amber">
+                <School size={22} strokeWidth={1.7} />
+              </span>
+            )
+          ) : null}
+          <h4 className="m-0 font-cairo text-[16.5px] font-extrabold leading-[1.35] text-paper">{item.university.labelAr}</h4>
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-            {!hideMedia && item.country.iso2 ? <img className="h-[13px] w-[18px] rounded-sm object-cover" src={flagUrl(item.country.iso2, 40)} alt="" /> : null}
+            {item.country.iso2 ? <img className="h-[13px] w-[18px] rounded-sm object-cover" src={flagUrl(item.country.iso2, 40)} alt="" /> : null}
             {item.country.labelAr}
           </span>
-          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-            {item.stage.labelAr}
-          </span>
-          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/45 px-2.5 py-1 text-[12.5px] text-paper">
-            {item.years} سنوات
-          </span>
         </div>
+        <p className="m-0 flex flex-wrap items-center gap-1.5 text-[13px] leading-[1.6] text-slate">
+          {majorLabel(item)}
+          <span className="opacity-50">·</span>
+          {item.stage.labelAr}
+          <span className="opacity-50">·</span>
+          {item.years} سنوات
+        </p>
       </div>
-      <div
-        className={cn(
-          'min-w-[132px] text-left',
-          'max-[720px]:col-start-2 max-[720px]:min-w-0 max-[720px]:text-right',
-        )}
-      >
-        <div className="font-cairo text-lg font-black leading-tight text-amber" dir="ltr">
-          {formatUsd(item.totalCostUsd)}
+      <div className="flex items-center gap-2 max-[720px]:col-start-2 max-[720px]:justify-start">
+        <div className="min-w-[108px] text-left max-[720px]:min-w-0 max-[720px]:text-right">
+          <div className="font-cairo text-lg font-black leading-tight text-amber">
+            <span dir="ltr">{formatUsd(item.annualCostUsd)}</span>
+            <span className="ms-1 font-tajawal text-xs font-bold text-slate">سنوياً</span>
+          </div>
         </div>
-        <div className="mt-1 text-xs text-slate">سعر المرحلة</div>
-      </div>
-      <div
-        className={cn(
-          'flex items-center gap-2',
-          'max-[720px]:col-start-2 max-[720px]:justify-start',
-        )}
-      >
         <IconButton icon="edit" label="تغيير" onClick={() => onChangeItem(item.id)} />
         <IconButton icon="delete" label="حذف" tone="danger" onClick={() => onRemoveItem(item.id)} />
       </div>
