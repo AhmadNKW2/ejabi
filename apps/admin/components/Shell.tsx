@@ -7,9 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { LoadingOverlay } from './LoadingOverlay';
 
 const links = [
-  { href: '/', label: 'الرئيسية' },
   { href: '/applications', label: 'الطلبات' },
-  { href: '/students', label: 'الطلاب' },
   { href: '/countries', label: 'الدول' },
   { href: '/fields', label: 'الحقول والتخصصات' },
   { href: '/stages', label: 'المراحل' },
@@ -43,7 +41,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex flex-col gap-1">
           {links.map((l) => {
-            const active = pathname === l.href || (l.href === '/universities' && pathname === '/prices');
+            const active =
+              pathname === l.href ||
+              (l.href === '/universities' && pathname === '/prices') ||
+              (l.href === '/applications' && pathname.startsWith('/applications'));
             return (
               <Link
                 key={l.href}

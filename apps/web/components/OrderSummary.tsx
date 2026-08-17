@@ -76,7 +76,7 @@ export function OrderSummary({
               key={i}
               className={cn(
                 'inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink-3 font-cairo text-xs font-black text-slate',
-                i < items.length && 'bg-amber text-ink',
+                i < items.length && 'bg-amber/15 text-amber',
               )}
             >
               {i + 1}
@@ -290,15 +290,17 @@ function SortableChoiceCard({
           {item.years} سنوات
         </p>
       </div>
-      <div className="flex items-center gap-2 max-[720px]:col-start-2 max-[720px]:justify-start">
+      <div className="flex flex-nowrap items-center gap-2 max-[720px]:col-start-2 max-[720px]:w-full max-[720px]:justify-between">
         <div className="min-w-[108px] text-left max-[720px]:min-w-0 max-[720px]:text-right">
           <div className="font-cairo text-lg font-black leading-tight text-amber">
             <span dir="ltr">{formatUsd(item.annualCostUsd)}</span>
             <span className="ms-1 font-tajawal text-xs font-bold text-slate">سنوياً</span>
           </div>
         </div>
-        <IconButton icon="edit" label="تغيير" onClick={() => onChangeItem(item.id)} />
-        <IconButton icon="delete" label="حذف" tone="danger" onClick={() => onRemoveItem(item.id)} />
+        <div className="flex shrink-0 items-center gap-2">
+          <IconButton icon="edit" label="تغيير" onClick={() => onChangeItem(item.id)} />
+          <IconButton icon="delete" label="حذف" tone="danger" onClick={() => onRemoveItem(item.id)} />
+        </div>
       </div>
     </Reorder.Item>
   );

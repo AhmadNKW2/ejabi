@@ -60,14 +60,13 @@ function AddMajorSelect({
 }) {
   const added = new Set(addedIds);
   return (
-    <div className="w-full min-w-[240px] max-w-sm">
+    <div className="w-full">
       <Select
         value=""
         placeholder={majors.length === 0 ? 'لا توجد تخصصات في قاعدة البيانات' : 'اختر تخصصًا'}
         options={majors.map((m) => ({
           value: m.id,
           label: m.labelAr,
-          sub: m.labelEn,
           disabled: added.has(m.id),
         }))}
         onChange={(id) => {
@@ -234,28 +233,23 @@ function UniversitiesWorkspace() {
   async function savePrice(majorId: string, stageId: string, costUsd: number) {
     if (!selected) return;
     const key = `${majorId}:${selected.id}:${stageId}`;
-    const offered = priceMap.get(`${majorId}:${selected.id}:${stageId}`) != null;
+    const prev = priceMap.get(key);
     setSavingKey(key);
     setBanner('');
+    patchLocalPrice(majorId, selected.id, stageId, costUsd);
+    patchLocalUni(
+      selected.id,
+      selectedOfferings.map((o) =>
+        o.majorId === majorId ? { ...o, stageIds: [...new Set([...o.stageIds, stageId])] } : o,
+      ),
+    );
     try {
-      if (!offered) {
-        const next = selectedOfferings.map((o) =>
-          o.majorId === majorId ? { ...o, stageIds: [...new Set([...o.stageIds, stageId])] } : o,
-        );
-        await persistOfferings(selected, next);
-      }
-      const prev = priceMap.get(key);
-      patchLocalPrice(majorId, selected.id, stageId, costUsd);
-      try {
-        await api('/admin/prices', {
-          method: 'POST',
-          body: JSON.stringify({ majorId, universityId: selected.id, stageId, costUsd }),
-        });
-      } catch (err) {
-        patchLocalPrice(majorId, selected.id, stageId, prev ?? null);
-        throw err;
-      }
+      await api('/admin/prices', {
+        method: 'POST',
+        body: JSON.stringify({ majorId, universityId: selected.id, stageId, costUsd }),
+      });
     } catch (err) {
+      patchLocalPrice(majorId, selected.id, stageId, prev ?? null, prev == null);
       setBanner(err instanceof ApiError ? err.message : 'تعذر حفظ السعر');
     } finally {
       setSavingKey('');
@@ -417,9 +411,6 @@ function UniversitiesWorkspace() {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-cairo text-2xl font-black text-amber">الجامعات والأسعار</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-7 text-slate">
-            اختر جامعة، أضف تخصصاتها، ثم فعّل المرحلة بسعر. بلا سعر تبقى متوقفة عن الطلاب.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-teal/15 px-3 py-1 text-xs text-teal">{stats.priced} مرحلة مفعّلة</span>
@@ -508,17 +499,17 @@ function UniversitiesWorkspace() {
               <header className="mb-5 flex flex-wrap items-start gap-4">
                 <UniversityLogo src={selected.logoUrl} size={64} />
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-cairo text-2xl font-black">{selected.labelAr}</h2>
-                  <p className="mt-0.5 text-sm text-slate">{selected.labelEn}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-                    <span className="inline-flex items-center gap-2">
-                      <Flag iso2={selectedCountry?.iso2 || selected.country?.iso2} size={16} />
+                  <h2 className="flex flex-wrap items-center gap-2 font-cairo text-2xl font-black">
+                    {selected.labelAr}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-3 px-2.5 py-1 text-xs font-bold text-paper">
+                      <Flag iso2={selectedCountry?.iso2 || selected.country?.iso2} size={14} />
                       {selectedCountry?.labelAr || selected.country?.labelAr}
                     </span>
-                    {!selected.isActive ? (
-                      <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-slate">غير مفعلة</span>
-                    ) : null}
-                  </div>
+                  </h2>
+                  <p className="mt-0.5 text-sm text-slate">{selected.labelEn}</p>
+                  {!selected.isActive ? (
+                    <span className="mt-2 inline-flex rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-slate">غير مفعلة</span>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="text-left">
@@ -537,13 +528,7 @@ function UniversitiesWorkspace() {
 
               {banner ? <p className="mb-4 text-sm text-danger">{banner}</p> : null}
 
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h3 className="font-cairo text-sm font-extrabold text-amber">التخصصات والأسعار</h3>
-                  <p className="mt-1 text-xs leading-6 text-slate">
-                    المرحلة بلا سعر تبقى متوقفة ولن يراها الطلاب. اضغط «تفعيل» واكتب السعر لتفعيلها.
-                  </p>
-                </div>
+              <div className="mb-4">
                 <AddMajorSelect
                   majors={majors}
                   addedIds={selectedOfferings.map((o) => o.majorId)}
@@ -575,7 +560,9 @@ function UniversitiesWorkspace() {
                             <div>
                               {stage.labelAr}
                             </div>
-                            <div className="mt-0.5 text-[11px] font-medium text-slate">{stage.years} سنوات</div>
+                            <div className="mx-auto mt-1 w-fit rounded-full bg-amber/10 px-2.5 py-0.5 text-[11px] font-bold text-amber">
+                              {stage.years} سنوات
+                            </div>
                           </th>
                         ))}
                       </tr>
@@ -585,19 +572,14 @@ function UniversitiesWorkspace() {
                         return (
                           <tr key={major.id} className="hover:[&>td]:bg-white/[0.03] hover:[&>th]:bg-white/[0.03]">
                             <th className="sticky right-0 z-[1] min-w-[220px] border-b border-line bg-ink-2 px-2.5 py-3 text-right font-bold text-paper">
-                              <div className="flex items-start justify-between gap-2">
-                                <div>
-                                  <div className="font-bold">
-                                    {major.labelAr}
-                                  </div>
-                                  <div className="text-[11px] font-medium text-slate">{major.labelEn}</div>
-                                </div>
+                              <div className="flex items-center gap-2">
                                 <IconButton
                                   icon="delete"
                                   label="حذف التخصص"
                                   tone="danger"
                                   onClick={() => setPendingRemoveMajor(major)}
                                 />
+                                <div className="font-bold">{major.labelAr}</div>
                               </div>
                             </th>
                             {stages.map((stage) => {
@@ -623,17 +605,6 @@ function UniversitiesWorkspace() {
                   </table>
                 </div>
               )}
-
-              <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-slate">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="rounded-md bg-ink-3 px-2 py-0.5">تفعيل</span>
-                  متوقفة — بلا سعر
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="rounded-md bg-amber/15 px-2 py-0.5 text-amber">$4,000</span>
-                  مفعّلة ويراها الطلاب
-                </span>
-              </div>
             </motion.div>
           )}
         </section>
@@ -651,7 +622,7 @@ function UniversitiesWorkspace() {
               value={form.countryId}
               options={countries.map((c) => ({
                 value: c.id,
-                label: `${c.labelAr} · ${c.labelEn}`,
+                label: c.labelAr,
                 icon: <Flag iso2={c.iso2} size={18} />,
               }))}
               onChange={(v) => setForm((s) => ({ ...s, countryId: v }))}

@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
     setError('');
     try {
       await login(email, password);
-      router.push('/');
+      router.push('/applications');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذر الدخول');
     }

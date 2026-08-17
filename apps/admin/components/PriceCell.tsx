@@ -7,6 +7,8 @@ export function money(value: number | null | undefined) {
   return `$${value.toLocaleString('en-US')}`;
 }
 
+const CELL = 'h-11 w-[6.25rem]';
+
 export function PriceCell({
   cost,
   offered,
@@ -47,8 +49,8 @@ export function PriceCell({
       return;
     }
     setError(false);
-    await onSave(n);
     setEditing(false);
+    await onSave(n);
   }
 
   if (editing) {
@@ -60,7 +62,7 @@ export function PriceCell({
           inputMode="decimal"
           min={0}
           placeholder="0"
-          className={`h-11 w-[8rem] text-center ${error ? 'border-danger' : ''}`}
+          className={`${CELL} !w-[6.25rem] text-center ${error ? 'border-danger' : ''}`}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -108,7 +110,7 @@ export function PriceCell({
             setDraft(String(cost));
             setEditing(true);
           }}
-          className="min-h-11 min-w-[7rem] px-3 py-2 font-cairo text-sm font-black text-amber hover:bg-amber/15"
+          className={`${CELL} px-2 font-cairo text-sm font-black text-amber hover:bg-amber/15`}
         >
           {money(cost)}
         </button>
@@ -124,9 +126,9 @@ export function PriceCell({
         setDraft('');
         setEditing(true);
       }}
-      className="min-h-11 min-w-[8rem] rounded-xl border-0 bg-ink-3/60 px-3 py-2 font-cairo text-sm font-black text-slate hover:bg-ink-3 hover:text-amber"
+      className={`${CELL} rounded-xl border-0 bg-ink-3/60 font-cairo text-sm font-black text-slate hover:bg-ink-3 hover:text-amber`}
     >
-      تفعيل
+      —
     </button>
   );
 }

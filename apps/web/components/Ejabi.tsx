@@ -105,6 +105,7 @@ function isUnlocked(key: StepKey, selection: Selection) {
 
 export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogResponse | null }) {
   const builderRef = useRef<HTMLElement>(null);
+  const quoteSectionRef = useRef<HTMLElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const pendingSummaryScroll = useRef(false);
   const countryStepRef = useRef<HTMLElement>(null);
@@ -122,6 +123,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
   const [actionsVisible, setActionsVisible] = useState(false);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(initialCatalog);
+  const [uniNamesEn, setUniNamesEn] = useState(false);
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [focusStep, setFocusStep] = useState<StepKey | null>(null);
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
@@ -229,7 +231,6 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
       return;
     }
     let cancelled = false;
-    setQuote(null);
     setQuoting(true);
     const dto: QuoteRequest = {
       fieldId: selection.fieldId!,
@@ -270,8 +271,8 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
         view2StepRefs[next].current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
-      actionsEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
+      quoteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 220);
   }
 
   function clearFrom(prev: Selection, group: keyof Selection): Selection {
@@ -467,7 +468,11 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
       universityId: item.universityId,
     });
     setFocusStep('country');
-    setQuote(null);
+    setQuote({
+      years: item.years,
+      annualCostUsd: item.annualCostUsd,
+      totalCostUsd: item.totalCostUsd,
+    });
     scrollToFirstStep();
   }
 
@@ -531,7 +536,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
   return (
     <div className={cn('home flex flex-col gap-[15px]', showDock && !summaryPage && 'max-[720px]:pb-[84px]')}>
       <LoadingOverlay
-        show={quoting || submitting}
+        show={(quoting && !quote) || submitting}
         label={submitting ? 'جارٍ إرسال الطلب...' : 'جارٍ حساب التكلفة...'}
       />
       <div ref={summaryRef} className="flex flex-col gap-[15px] scroll-mt-2">
@@ -620,12 +625,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                     editing && 'bg-amber-wash ring-1 ring-amber/50',
                   )}
                 >
-                  <span
-                    className={cn(
-                      'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink-3 font-cairo text-sm font-black text-slate',
-                      editing && 'bg-amber text-ink',
-                    )}
-                  >
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber/15 font-cairo text-sm font-black text-amber">
                     {index + 1}
                   </span>
                   <div className="min-w-0">
@@ -656,7 +656,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                 />
               </PillStep>
               {selection.countryId ? (
-                <PillStep key="field" stepRef={fieldStepRef} label="الحقل" hint={STEPS[1].hint}>
+                <PillStep key="field" stepRef={fieldStepRef} label="الحقل">
                   <OptionPills
                     items={catalog.fields.map((f) => ({ id: f.id, label: f.labelAr }))}
                     value={selection.fieldId}
@@ -665,7 +665,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                 </PillStep>
               ) : null}
               {selection.countryId && selection.fieldId ? (
-                <PillStep key="major" stepRef={majorStepRef} label="التخصص" hint={STEPS[2].hint}>
+                <PillStep key="major" stepRef={majorStepRef} label="التخصص">
                   <OptionPills
                     items={majors.map((m) => ({ id: m.id, label: m.labelAr }))}
                     value={selection.majorId}
@@ -674,14 +674,53 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                 </PillStep>
               ) : null}
               {selection.countryId && selection.majorId ? (
-                <PillStep key="university" stepRef={universityStepRef} label="الجامعة" hint={STEPS[3].hint}>
+                <PillStep
+                  key="university"
+                  stepRef={universityStepRef}
+                  label="الجامعة"
+                  action={
+                    universities.length > 0 ? (
+                      <div
+                        className="inline-flex shrink-0 items-center rounded-full border border-white/12 bg-ink-3 p-0.5 shadow-[inset_0_0_0_1px_rgba(232,163,61,0.08)]"
+                        role="group"
+                        aria-label="لغة أسماء الجامعات"
+                      >
+                        <button
+                          type="button"
+                          className={cn(
+                            'rounded-full px-3 py-1.5 font-cairo text-[11px] font-black transition-colors',
+                            !uniNamesEn ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
+                          )}
+                          aria-pressed={!uniNamesEn}
+                          onClick={() => setUniNamesEn(false)}
+                        >
+                          عربي
+                        </button>
+                        <button
+                          type="button"
+                          className={cn(
+                            'rounded-full px-3 py-1.5 font-cairo text-[11px] font-black tracking-wide transition-colors',
+                            uniNamesEn ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
+                          )}
+                          aria-pressed={uniNamesEn}
+                          onClick={() => setUniNamesEn(true)}
+                        >
+                          EN
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                >
                   {universities.length === 0 ? (
                     <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
                       لا توجد جامعات لهذا التخصص في هذه الدولة. غيّر التخصص أو الدولة.
                     </p>
                   ) : (
                     <OptionPills
-                      items={universities.map((u) => ({ id: u.id, label: u.labelAr }))}
+                      items={universities.map((u) => ({
+                        id: u.id,
+                        label: uniNamesEn ? u.labelEn || u.labelAr : u.labelAr,
+                      }))}
                       value={selection.universityId}
                       onChange={(id) => pick('universityId', id, true)}
                     />
@@ -689,7 +728,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                 </PillStep>
               ) : null}
               {selection.universityId ? (
-                <PillStep key="stage" stepRef={stageStepRef} label="المرحلة" hint={STEPS[4].hint}>
+                <PillStep key="stage" stepRef={stageStepRef} label="المرحلة">
                   {offeredStages.length === 0 ? (
                     <p className="m-0 rounded-2xl bg-ink-3 px-4 py-5 text-center text-[14.5px] leading-[1.9] text-slate">
                       هذا التخصص لا يُقدَّم في أي مرحلة في هذه الجامعة.
@@ -837,7 +876,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 style={{ overflow: 'hidden' }}
               >
-                <footer className="flex flex-col gap-4 border-t border-line bg-black/[0.14] px-5 pb-[18px] pt-5 max-[720px]:px-3.5 max-[720px]:pb-4 max-[720px]:pt-3.5" aria-live="polite">
+                <footer ref={quoteSectionRef} className="flex scroll-mt-[92px] flex-col gap-4 border-t border-line bg-black/[0.14] px-5 pb-[18px] pt-5 max-[720px]:px-3.5 max-[720px]:pb-4 max-[720px]:pt-3.5" aria-live="polite">
                   <div className="grid grid-cols-3 gap-3 max-[720px]:grid-cols-2">
                     <div className="flex flex-col items-center rounded-2xl bg-ink-3 px-3 py-4 text-center">
                       <span className="mb-2 inline-flex items-center justify-center text-amber" aria-hidden>
@@ -980,11 +1019,13 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
 function PillStep({
   label,
   hint,
+  action,
   children,
   stepRef,
 }: {
   label: string;
-  hint: string;
+  hint?: string;
+  action?: ReactNode;
   children: ReactNode;
   stepRef?: Ref<HTMLElement>;
 }) {
@@ -997,8 +1038,21 @@ function PillStep({
       transition={{ duration: 0.22, ease: 'easeOut' }}
       className="scroll-mt-[92px] overflow-hidden"
     >
-      <h2 className="mb-1 font-cairo text-xl font-black text-paper">{label}</h2>
-      <p className="mb-3 max-w-[46ch] text-sm leading-[1.8] text-slate">{hint}</p>
+      <div className="relative mb-4 flex items-start justify-between gap-3 pb-3">
+        <div className="min-w-0">
+          <h2 className="m-0 font-cairo text-xl font-black text-paper">{label}</h2>
+          {hint ? <p className="mb-0 mt-1 max-w-[46ch] text-sm leading-[1.8] text-slate">{hint}</p> : null}
+        </div>
+        {action}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-l from-transparent via-line to-amber/70"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 right-0 h-[3px] w-10 rounded-full bg-amber"
+        />
+      </div>
       {children}
     </motion.section>
   );

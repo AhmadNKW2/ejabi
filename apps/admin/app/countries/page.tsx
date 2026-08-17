@@ -11,6 +11,7 @@ export default function CountriesPage() {
       <CatalogManager<CatalogCountry>
         title="الدول"
         path="/admin/countries"
+        showStatusFilter={false}
         fields={[
           {
             key: 'iso2',
@@ -18,12 +19,11 @@ export default function CountriesPage() {
             type: 'select',
             options: WORLD_COUNTRIES.map((c) => ({
               value: c.iso2,
-              label: `${c.labelAr} · ${c.labelEn}`,
+              label: c.labelAr,
               icon: <img src={flagUrl(c.iso2, 40)} alt="" className="h-4 w-6 rounded-sm object-cover" />,
             })),
           },
-          { key: 'labelAr', label: 'الاسم بالعربي', type: 'text' },
-          { key: 'labelEn', label: 'الاسم بالإنجليزي', type: 'text' },
+          { key: 'labelAr', label: 'الاسم', type: 'text' },
         ]}
         defaults={{ isActive: true }}
         onFieldChange={(key, value, setForm) => {
@@ -40,16 +40,13 @@ export default function CountriesPage() {
         fromForm={(f) => ({
           iso2: f.iso2,
           labelAr: f.labelAr,
-          labelEn: f.labelEn,
+          labelEn: f.labelEn || f.labelAr,
           isActive: f.isActive !== false,
         })}
         renderItem={(r) => (
           <div className="flex items-center gap-3">
             <Flag iso2={r.iso2} />
-            <div>
-              <div className="font-bold">{r.labelAr}</div>
-              <div className="text-xs text-slate">{r.labelEn}</div>
-            </div>
+            <div className="font-bold">{r.labelAr}</div>
           </div>
         )}
       />

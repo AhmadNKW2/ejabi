@@ -34,7 +34,7 @@ function parseOfferings(value: string | boolean | undefined): MajorStageOffering
 
 export type FormField =
   | { key: string; label: string; hint?: string; type?: 'text' | 'icon' | 'url'; placeholder?: string }
-  | { key: string; label: string; hint?: string; type: 'number'; step?: string }
+  | { key: string; label: string; hint?: string; type: 'number'; step?: string; className?: string }
   | { key: string; label: string; hint?: string; type: 'toggle' }
   | { key: string; label: string; hint?: string; type: 'select'; options: SelectOption[] }
   | { key: string; label: string; hint?: string; type: 'multiselect'; options: SelectOption[] }
@@ -77,6 +77,7 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
   filterOf,
   description,
   wideModal,
+  showStatusFilter = true,
 }: {
   title: string;
   path: string;
@@ -94,6 +95,7 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
   filterOf?: (row: T) => string;
   description?: string;
   wideModal?: boolean;
+  showStatusFilter?: boolean;
 }) {
   const [rows, setRows] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,7 +209,9 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
       </div>
       {description ? <p className="-mt-2 mb-5 text-sm leading-7 text-slate">{description}</p> : null}
 
+      {(showStatusFilter || filterPills?.length) ? (
       <div className="mb-4 flex flex-col gap-3">
+        {showStatusFilter ? (
         <Pills
           value={statusFilter}
           onChange={setStatusFilter}
@@ -217,10 +221,12 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
             { id: 'inactive', label: 'متوقف' },
           ]}
         />
+        ) : null}
         {filterPills?.length ? (
           <Pills value={extraFilter} onChange={setExtraFilter} items={filterPills} />
         ) : null}
       </div>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-slate">جاري التحميل...</p>
@@ -264,6 +270,7 @@ export function CatalogManager<T extends { id: string; isActive?: boolean }>({
                 <NumberInput
                   value={String(form[f.key] ?? '')}
                   step={f.step}
+                  className={f.className}
                   onChange={(v) => setForm((s) => ({ ...s, [f.key]: v }))}
                 />
               ) : f.type === 'select' ? (
