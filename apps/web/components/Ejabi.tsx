@@ -646,15 +646,15 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
       <div>
         <section ref={builderRef} className="min-w-0 overflow-hidden rounded-[22px] bg-ink-2 scroll-mt-[92px]" aria-label="لوحة بناء المسار">
           {pills ? (
-            <div className="px-4 py-5 max-[720px]:px-3 max-[720px]:py-4">
-              <AnimatePresence initial={false}>
-              <PillStep key="country" stepRef={countryStepRef} label="الدولة" hint={STEPS[0].hint}>
+            <div className="relative z-10 px-4 py-5 max-[720px]:px-3 max-[720px]:py-4">
+              <PillStep stepRef={countryStepRef} label="الدولة" hint={STEPS[0].hint} staticStep>
                 <OptionPills
                   items={catalog.countries.map((c) => ({ id: c.id, label: c.labelAr }))}
                   value={selection.countryId}
                   onChange={(id) => pick('countryId', id, true)}
                 />
               </PillStep>
+              <AnimatePresence initial={false}>
               {selection.countryId ? (
                 <PillStep key="field" stepRef={fieldStepRef} label="الحقل">
                   <OptionPills
@@ -680,34 +680,7 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
                   label="الجامعة"
                   action={
                     universities.length > 0 ? (
-                      <div
-                        className="inline-flex shrink-0 items-center rounded-full border border-white/12 bg-ink-3 p-0.5 shadow-[inset_0_0_0_1px_rgba(232,163,61,0.08)]"
-                        role="group"
-                        aria-label="لغة أسماء الجامعات"
-                      >
-                        <button
-                          type="button"
-                          className={cn(
-                            'rounded-full px-3 py-1.5 font-cairo text-[11px] font-black transition-colors',
-                            !uniNamesEn ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
-                          )}
-                          aria-pressed={!uniNamesEn}
-                          onClick={() => setUniNamesEn(false)}
-                        >
-                          عربي
-                        </button>
-                        <button
-                          type="button"
-                          className={cn(
-                            'rounded-full px-3 py-1.5 font-cairo text-[11px] font-black tracking-wide transition-colors',
-                            uniNamesEn ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
-                          )}
-                          aria-pressed={uniNamesEn}
-                          onClick={() => setUniNamesEn(true)}
-                        >
-                          EN
-                        </button>
-                      </div>
+                      <UniLangSwitch english={uniNamesEn} onChange={setUniNamesEn} />
                     ) : null
                   }
                 >
@@ -1016,44 +989,104 @@ export function Ejabi({ initialCatalog = null }: { initialCatalog?: CatalogRespo
   );
 }
 
+function UniLangSwitch({
+  english,
+  onChange,
+}: {
+  english: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  function toggle() {
+    onChange(!english);
+  }
+
+  return (
+    <div className="inline-flex rounded-full bg-black/35 p-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]" role="group" aria-label="لغة أسماء الجامعات">
+      <button
+        type="button"
+        aria-pressed={!english}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggle();
+        }}
+        className={cn(
+          'min-w-[3.15rem] rounded-full px-3 py-[7px] font-cairo text-[13px] font-black leading-none transition-colors',
+          !english ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
+        )}
+      >
+        عربي
+      </button>
+      <button
+        type="button"
+        aria-pressed={english}
+        dir="ltr"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggle();
+        }}
+        className={cn(
+          'min-w-[3.15rem] rounded-full px-3 py-[7px] font-cairo text-[13px] font-black leading-none tracking-[0.16em] transition-colors',
+          english ? 'bg-amber text-ink shadow-sm' : 'text-slate hover:text-paper',
+        )}
+      >
+        EN
+      </button>
+    </div>
+  );
+}
+
 function PillStep({
   label,
   hint,
   action,
   children,
   stepRef,
+  staticStep = false,
 }: {
   label: string;
   hint?: string;
   action?: ReactNode;
   children: ReactNode;
   stepRef?: Ref<HTMLElement>;
+  staticStep?: boolean;
 }) {
-  return (
-    <motion.section
-      ref={stepRef}
-      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-      animate={{ opacity: 1, height: 'auto', marginBottom: 28 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
-      className="scroll-mt-[92px] overflow-hidden"
-    >
-      <div className="relative mb-4 flex items-start justify-between gap-3 pb-3">
+  const body = (
+    <>
+      <div className="pointer-events-none relative mb-4 flex items-start justify-between gap-3 border-b border-white/10 pb-3">
         <div className="min-w-0">
           <h2 className="m-0 font-cairo text-xl font-black text-paper">{label}</h2>
           {hint ? <p className="mb-0 mt-1 max-w-[46ch] text-sm leading-[1.8] text-slate">{hint}</p> : null}
         </div>
-        {action}
+        {action ? <div className="pointer-events-auto">{action}</div> : null}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-l from-transparent via-line to-amber/70"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 right-0 h-[3px] w-10 rounded-full bg-amber"
+          className="absolute -bottom-px end-0 h-[3px] w-10 rounded-full bg-amber"
         />
       </div>
-      {children}
+      <div className="pointer-events-auto relative z-10">{children}</div>
+    </>
+  );
+
+  if (staticStep) {
+    return (
+      <section ref={stepRef} className="mb-7 scroll-mt-[92px]">
+        {body}
+      </section>
+    );
+  }
+
+  return (
+    <motion.section
+      ref={stepRef}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="scroll-mt-[92px] overflow-hidden"
+    >
+      <div className="mb-7">{body}</div>
     </motion.section>
   );
 }

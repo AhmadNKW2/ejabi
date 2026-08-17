@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 
 export function OptionPills({
@@ -15,20 +14,21 @@ export function OptionPills({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-wrap gap-2.5', className)}>
+    <div className={cn('relative z-[1] flex flex-wrap gap-2.5', className)}>
       {items.map((item) => {
         const active = value === item.id;
         return (
-          <motion.button
+          <button
             key={item.id}
             type="button"
             aria-pressed={active}
-            onClick={() => onChange(item.id)}
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.18 }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onChange(item.id);
+            }}
             className={cn(
-              'rounded-full border px-3.5 py-2 font-cairo text-sm font-extrabold leading-tight transition-colors',
+              'cursor-pointer rounded-full border px-3.5 py-2 font-cairo text-sm font-extrabold leading-tight transition-colors',
               active
                 ? 'border-amber bg-amber text-ink'
                 : 'border-white/15 bg-ink-3 text-paper hover:border-amber/45 hover:bg-white/[0.06]',
@@ -45,7 +45,7 @@ export function OptionPills({
                 {item.caption}
               </small>
             ) : null}
-          </motion.button>
+          </button>
         );
       })}
     </div>

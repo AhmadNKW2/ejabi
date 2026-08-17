@@ -71,7 +71,6 @@ function StageCard({
 
         <div className="min-w-0">
           <h2 className="truncate font-cairo text-xl font-black text-paper">{stage.labelAr}</h2>
-          <p className="mt-0.5 text-xs text-slate">المرحلة {index + 1} في ترتيب الظهور للطلاب</p>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
