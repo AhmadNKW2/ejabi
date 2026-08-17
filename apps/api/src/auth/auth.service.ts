@@ -28,10 +28,12 @@ export class AuthService {
     return {
       httpOnly: true,
       secure,
-      // Cross-site Vercel → Railway cookies require SameSite=None; Secure
+      // Cross-site Vercel → Railway cookies require SameSite=None; Secure.
+      // Partitioned (CHIPS) keeps them working as Chrome blocks third-party cookies.
       sameSite: (secure ? 'none' : 'lax') as 'none' | 'lax',
       path: '/',
       maxAge,
+      ...(secure ? { partitioned: true } : {}),
     };
   }
 

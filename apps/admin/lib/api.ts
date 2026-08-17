@@ -1,6 +1,17 @@
 import { mediaUrl } from '@ejabi/shared';
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const CONFIGURED_API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+function apiBase() {
+  if (typeof window === 'undefined') return CONFIGURED_API;
+  if (!CONFIGURED_API.startsWith('http')) return CONFIGURED_API;
+  try {
+    if (new URL(CONFIGURED_API).host === window.location.host) return CONFIGURED_API;
+  } catch {
+    return CONFIGURED_API;
+  }
+  return '/backend';
+}
 
 export class ApiError extends Error {
   status: number;
@@ -20,11 +31,12 @@ async function parseError(res: Response) {
   }
 }
 
-export const apiUrl = API;
-export const mediaSrc = (src?: string | null) => mediaUrl(src, API);
+export const apiUrl = CONFIGURED_API;
+export const mediaSrc = (src?: string | null) => mediaUrl(src, apiBase());
 
 export async function api<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const base = apiBase();
+  const res = await fetch(`${base}${path}`, {
     ...options,
     credentials: 'include',
     headers: {
@@ -34,7 +46,7 @@ export async function api<T>(path: string, options: RequestInit = {}, retry = tr
   });
 
   if (res.status === 401 && retry && path !== '/auth/refresh' && path !== '/auth/login') {
-    const refreshed = await fetch(`${API}/auth/refresh`, {
+    const refreshed = await fetch(`${base}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -51,14 +63,15 @@ export async function api<T>(path: string, options: RequestInit = {}, retry = tr
 }
 
 export async function apiUpload<T>(path: string, form: FormData, retry = true): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const base = apiBase();
+  const res = await fetch(`${base}${path}`, {
     method: 'POST',
     credentials: 'include',
     body: form,
   });
 
   if (res.status === 401 && retry) {
-    const refreshed = await fetch(`${API}/auth/refresh`, {
+    const refreshed = await fetch(`${base}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     });

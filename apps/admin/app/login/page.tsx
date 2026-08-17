@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api';
 export default function AdminLoginPage() {
   const { login } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('admin@ejabi.local');
+  const [email, setEmail] = useState('jordan.adnan@gmail.com');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
